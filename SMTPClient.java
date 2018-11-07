@@ -76,7 +76,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	 * Sends command 'HELO' to server then connects
 	 */
 	private void doConnect() {
-
+		// TODO: the socket will take host, port, however the host will be different per server that we will connect to, whereas the port will always be PORT_NUM
 	}
 
 	/*
