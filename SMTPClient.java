@@ -12,8 +12,8 @@ import javafx.stage.*;
 import javafx.geometry.*;
 
 /**
- * SMTPClient
- * Client for ISTE-121 final project, will send commands to the server to process
+ * SMTP Client
+ * Client for ISTE-121 final project, connects to a server and will send commands to the server to process
  * @author Brandon Mok + Xin Liu + Brantley Wyche
  * @version 11/7/18
  */
