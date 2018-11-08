@@ -77,4 +77,43 @@ public class SMTPServer extends Application implements EventHandler<ActionEvent>
 	private void doStop() {
 
 	}
+
+	/**
+	 * On command "RETRIEVE FROM USER+PASSWORD", the server will look for users that have the USER+PASSWORD combination and return all their messages
+	 */
+	private void doRetrieve() {
+
+	}
+
+	/**
+	 * On command "MAIL FROM: <address>", "RCPT TO: <address>", and then "DATA", the server will send the message sent from client to the indicated address.
+	 *
+	 * Additionally, the server will use a Ceasar Cipher of shift 13 on the message.
+	 */
+ 	private void doSend() {
+
+	}
+
+	/**
+	 * Encrypts message received from client with Ceasar Cipher of Shift 13
+	 */
+	private void doEncrypt() {
+
+	}
+
+	/**
+	 * ServerStart
+	 * Thread that will be instantiated on doStart(), this class will start a server at indicated socket and port
+	 */
+	class ServerStart extends Thread {
+
+	}
+
+	/**
+	 * ClientConnection
+	 * Thread that will be instantiated while the client connects with the server socket. This class will handle handle the interaction between client and server
+	 */
+	class ClientConnection extends Thread {
+
+	}
 }
