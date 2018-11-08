@@ -96,9 +96,9 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	/**
 	 * Sends command 'MAIL FROM: <address>' then 'RCPT TO: <address>' then 'DATA' before encrypting and sending the message
 	 *
-	 * The order of commands must all be approved by the server before encrypting and sending the message
+	 * The order of commands must all be approved by the server before sending the message
 	 */
 	private void doSend() {
-		// TODO: Ceasar cipher should go here
+		
 	}
 }
