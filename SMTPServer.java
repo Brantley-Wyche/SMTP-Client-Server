@@ -106,7 +106,15 @@ public class SMTPServer extends Application implements EventHandler<ActionEvent>
 	 * Thread that will be instantiated on doStart(), this class will start a server at indicated socket and port
 	 */
 	class ServerStart extends Thread {
+		// Attributes
+		private Socket cSocket = null;
 
+		/**
+		 * Thread start
+		 */
+		public void run() {
+
+		}
 	}
 
 	/**
@@ -114,6 +122,22 @@ public class SMTPServer extends Application implements EventHandler<ActionEvent>
 	 * Thread that will be instantiated while the client connects with the server socket. This class will handle handle the interaction between client and server
 	 */
 	class ClientConnection extends Thread {
+		// Attributes
+		private Socket cSocket = null;
 
+		/**
+		 * Constructor for ClientConnection
+		 * @param cSocket Accepts client connected socket
+		 */
+		public ClientConnection(Socket cSocket) {
+
+		}
+
+		/**
+		 * Thread start
+		 */
+		public void run() {
+
+		}
 	}
 }
