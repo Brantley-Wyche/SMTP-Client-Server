@@ -17,7 +17,7 @@ import javafx.geometry.*;
  * @author Brandon Mok + Xin Liu + Brantley Wyche
  * @version 11/7/18
  */
-public class SMTPServer extends Application implements EventHandler<ActionEvent> {
+public class SMTPServer extends Application implements EventHandler<ActionEvent>, ClientServerConstants {
 	// Attributes
 	// GUI
 	private Stage stage;
@@ -26,15 +26,21 @@ public class SMTPServer extends Application implements EventHandler<ActionEvent>
 
 	// Sockets
 	private ServerSocket sSocket = null;
-	public static final int PORT_NUM = 30000;
+// 	public static final int PORT_NUM = 30000; // using from interface?
 
 	// I/O
 	private Scanner scn = null;
 	private PrintWriter pwt = null;
+   
+   // Encryption
+   public static final String LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+   
 
-	// Main
+	/**
+   * Main
+   */
 	public static void main(String[] args) {
-		launch(args)
+		launch(args);
 	}
 
 	/**
@@ -97,9 +103,19 @@ public class SMTPServer extends Application implements EventHandler<ActionEvent>
 	/**
 	 * Encrypts message received from client with Ceasar Cipher of Shift 13
 	 */
-	private void doEncrypt() {
-
-	}
+	private void doEncrypt(String message) {
+      String result = "";
+      
+      for(int i = 0; i < message.length(); i++){
+         int characterPos = LETTERS.indexOf(message.charAt(i));
+         int keyValue = (SHIFT + characterPos) % 26;
+         char replaceVal = LETTERS.charAt(keyValue);
+         result += replaceVal;
+      }
+      
+      // not sure if we're going to be returning it, probably though
+      
+	}// end of doEncrypt
 
 	/**
 	 * ServerStart
