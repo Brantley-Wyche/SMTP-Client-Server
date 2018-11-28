@@ -87,7 +87,7 @@ public class SMTPClient extends Application {
 	}
 
 	/**
-	 * Sends command 'RETRIEVE FROM (USERNAME + PASSWORD)' then logs all of the messages for the user
+	 * Sends command 'RETRIEVE FROM (USERNAME)' then logs all of the messages for the user
 	 */
 	private void doRetrieve() {
 

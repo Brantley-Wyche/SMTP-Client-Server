@@ -31,6 +31,8 @@ public class SMTPServer extends Application implements EventHandler<ActionEvent>
 	// I/O
 	private Scanner scn = null;
 	private PrintWriter pwt = null;
+
+	// TODO: Implement queue for message buffer
    
    // Encryption
    public static final String LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -156,4 +158,12 @@ public class SMTPServer extends Application implements EventHandler<ActionEvent>
 
 		}
 	}
+
+	/**
+	 * MailThread
+	 * Thread that will read from the queue and store the message with its corresponding user in a file
+	 * 
+	 * There will a list of users authorized to recieve message s on this server.   
+	 */
+	
 }
