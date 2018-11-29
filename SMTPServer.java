@@ -2,88 +2,135 @@ import java.net.*;
 import java.io.*;
 import java.util.*;
 
-import javafx.application.*;
-import javafx.event.*;
-import javafx.scene.*;
-import javafx.scene.control.*;
-import javafx.scene.control.Alert.*;
-import javafx.scene.layout.*;
-import javafx.stage.*;
-import javafx.geometry.*;
-
 /**
  * SMTP Server
  * Server for ISTE 121 final project, connects to a client, then accepts commands from client to process them accordingly
  * @author Brandon Mok + Xin Liu + Brantley Wyche
  * @version 11/7/18
  */
-public class SMTPServer extends Application implements EventHandler<ActionEvent>, ClientServerConstants {
-	// Attributes
-	// GUI
-	private Stage stage;
-	private Scene scene;
-	private VBox root = new VBox(8);
-
+public class SMTPServer implements ClientServerConstants {
 	// Sockets
 	private ServerSocket sSocket = null;
-// 	public static final int PORT_NUM = 30000; // using from interface?
 
 	// I/O
 	private Scanner scn = null;
 	private PrintWriter pwt = null;
 
-	// TODO: Implement queue for message buffer
+	// Queue for storing messages
+	Queue<String> msgQueue = new LinkedList<>();
    
-   // Encryption
-   public static final String LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-   
-
 	/**
-   * Main
-   */
+	 * Main
+	 */
 	public static void main(String[] args) {
-		launch(args);
+		// Start socket
+		new SMTPServer().doStart();
 	}
 
 	/**
-	 * Starts GUI
-	 * @param _stage
+	 * ServerStart
+	 * 
+	 * Thread that will be instantiated on doStart(), this class will start a server at indicated socket and port
 	 */
-	public void start(Stage _stage) {
-		// TODO: Set up GUI
-	}
+	class ServerStart extends Thread {
+		// Attributes
+		private Socket cSocket = null;
 
-	/**
-	 * Handles button action events
-	 * @param evt Button on clicks
-	 */
-	public void handle(ActionEvent evt) {
-		// Get button name
-		Button btn = (Button)evt.getSource();
+		// Run
+		public void run() {
+			// Start server at SERVER_PORT
+			try {
+				sSocket = new ServerSocket(SERVER_PORT);
+				System.out.println("Server started at " + SERVER_PORT);
+			}
+			catch(IOException ioe) { ioe.printStackTrace(); }
 
-		// Case
-		switch(btn.getText()) {
-			case "Start":
-				doStart();
-				break;
-			case "Stop":
-				doStop();
-				break;
+			// Always listen for connections to server
+			while(true) {
+				// Accept connections to server
+				try {
+					cSocket = sSocket.accept();
+					System.out.println("Connection established!");
+				}
+				catch(IOException ioe) { 
+					ioe.printStackTrace(); 
+					return; 
+				}
+
+				// Start thread for ClientConnection 
+				ClientConnection ct = new ClientConnection(cSocket);
+				ct.start(); 
+			}
 		}
 	}
 
 	/**
+	 * ClientConnection
+	 * 
+	 * Thread that will be instantiated while the client connects with the server socket. This class will handle handle the interaction between client and server
+	 */
+	class ClientConnection extends Thread {
+		// Attributes
+		private Socket cSocket = null;
+
+		// Constructor
+		public ClientConnection(Socket _cSocket) {
+			this.cSocket = _cSocket;
+		}
+		
+		// Run
+		public void run() {
+			// Prepare I/O
+			try {
+				scn = new Scanner(new InputStreamReader( cSocket.getInputStream() ));
+				pwt = new PrintWriter(new OutputStreamWriter( cSocket.getOutputStream() ));
+			}
+			catch(IOException ioe) { ioe.printStackTrace(); }
+
+			// Listen for commands
+			while(scn.hasNextLine()) { 
+				// Get command
+				String cmd = scn.nextLine();
+
+				// HELO
+				if(cmd.equals("HELO")) {
+					// NOTE: "HELO" is sent when the client attempts to connect with the server
+					doHelo();
+				}
+			}
+		}
+	}
+
+	/**
+	 * MailThread
+	 * 
+	 * Thread that will read from the queue and store the message with its corresponding user in a file
+	 * 
+	 * There will a list of users authorized to recieve messages on this server.   
+	 */
+	class MailThread extends Thread {
+		public void run() {}
+	}
+	
+	/**
 	 * Starts sserver thread and socket to listen for connections
 	 */
 	private void doStart() {
-
+		// Starts ServerStart thread
+		new ServerStart().start();
 	}
 
 	/**
 	 * Closes server thread and socket to prevent further connections
 	 */
 	private void doStop() {
-
+		// Closes sSocket and streams
+		try {
+			sSocket.close();
+			scn.close();
+			pwt.close();
+		}
+		catch(IOException ioe) { ioe.printStackTrace(); }
 	}
 
 	/**
@@ -113,57 +160,13 @@ public class SMTPServer extends Application implements EventHandler<ActionEvent>
          int keyValue = (SHIFT + characterPos) % 26;
          char replaceVal = LETTERS.charAt(keyValue);
          result += replaceVal;
-      }
-      
-      // not sure if we're going to be returning it, probably though
-      
+	  }      
 	}// end of doEncrypt
 
 	/**
-	 * ServerStart
-	 * Thread that will be instantiated on doStart(), this class will start a server at indicated socket and port
-	 */
-	class ServerStart extends Thread {
-		// Attributes
-		private Socket cSocket = null;
-
-		/**
-		 * Thread start
-		 */
-		public void run() {
-
-		}
-	}
-
-	/**
-	 * ClientConnection
-	 * Thread that will be instantiated while the client connects with the server socket. This class will handle handle the interaction between client and server
-	 */
-	class ClientConnection extends Thread {
-		// Attributes
-		private Socket cSocket = null;
-
-		/**
-		 * Constructor for ClientConnection
-		 * @param cSocket Accepts client connected socket
-		 */
-		public ClientConnection(Socket cSocket) {
-
-		}
-
-		/**
-		 * Thread start
-		 */
-		public void run() {
-
-		}
-	}
-
-	/**
-	 * MailThread
-	 * Thread that will read from the queue and store the message with its corresponding user in a file
 	 * 
-	 * There will a list of users authorized to recieve message s on this server.   
 	 */
-	
+	private void doHelo() {
+
+	}
 }
