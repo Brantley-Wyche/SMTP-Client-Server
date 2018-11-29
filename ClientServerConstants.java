@@ -9,9 +9,11 @@ public interface ClientServerConstants{
    public static final int SERVER_PORT = 30000;
    
    // Email constants
-   // NOTE: For server to check that it is a recieved message
    public static final String EMAIL_START = "E+##$";
    public static final String EMAIL_END = ";!;";
+
+   // Encryption
+   public static final String LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
  
    // Encryption shift
    public static final int SHIFT = 13;
