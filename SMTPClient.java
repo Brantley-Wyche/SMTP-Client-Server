@@ -27,14 +27,20 @@ public class SMTPClient extends Application {
 	// Sockets
 	private Socket socket = null;
 	public static final int PORT_NUM = 30000;
+   
+   // Host String (IP) 
+   private String host = "";
 
 	// I/O
 	private Scanner scn = null;
 	private PrintWriter pwt = null;
+   
+   
+   
 
 	// Main
 	public static void main(String[] args) {
-		launch(args)
+		launch(args);
 	}
 
 	/**
@@ -73,24 +79,56 @@ public class SMTPClient extends Application {
 	}
 
 	/**
-	 * Sends command 'HELO' to server then connects
+	 * Sends command 'HELO' to server then connects 
 	 */
 	private void doConnect() {
 		// TODO: the socket will take host, port, however the host will be different per server that we will connect to, whereas the port will always be PORT_NUM
+      try{
+		 // Connect & open streams
+         socket = new Socket(host, PORT_NUM);
+         scn = new Scanner(new InputStreamReader(socket.getInputStream()));
+         pwt = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+         
+         
+         // Send command to server
+         pwt.println("HELO");
+         pwt.flush();
+      }
+      catch(IOException ioe){
+         ioe.printStackTrace();
+      }
 	}
 
 	/*
 	 * Sends command 'QUIT then closes connection
 	 */
 	private void doDisconnect() {
-
+      try{
+         // Sends command out first
+         pwt.println("QUIT");
+         pwt.flush();
+         
+         // Then closes the connections and streams
+         socket.close();
+         pwt.close();
+         scn.close();
+      }
+      catch(IOException ioe){
+         ioe.printStackTrace();
+      }
 	}
 
 	/**
 	 * Sends command 'RETRIEVE FROM (USERNAME)' then logs all of the messages for the user
 	 */
 	private void doRetrieve() {
-
+		// Send command
+        pwt.println("RETRIEVE FROM "); /* Still need the username. Need the userlist */
+        pwt.flush();
+         
+         
+         
+         
 	}
 
 	/**
@@ -99,6 +137,34 @@ public class SMTPClient extends Application {
 	 * The order of commands must all be approved by the server before sending the message
 	 */
 	private void doSend() {
+		// Sends Server the "MAIL FROM" command
+		pwt.println("MAIL FROM: " +   " " ); 
 
+		// Reads the response from the server
+		String resp = scn.nextLine();
+
+		// Response from the server must be "OK"
+		if(resp.equals("OK")){
+			// Sends "RCPT" to server
+			pwt.println("RCPT TO");
+			
+			// Read response from server again
+			String resp2 = scn.nextLine();
+
+			// Check again that the response is "OK"
+			// Must do so before encrypting and sending the message
+			if(resp.equals("OK")){
+
+				// Sends "DATA" to server
+				pwt.println("DATA");
+
+				String resp3 = scn.nextLine();
+
+				if(resp3.equals("OK")){
+
+
+				}
+			}
+		}
 	}
 }

@@ -1,0 +1,25 @@
+Authentication: username + password
+Encryption: Caesar Cypher, Shift 13
+Encryption Scheme: E+##$Message
+Port: 30000
+
+err4471
+
+git fetch
+gitk --all
+git branch -a (list of branches)
+
+(Pushing from local)
+git push -u origin [branch]
+
+
+Protocol=
+HELO (before login)
+MAIL FROM
+RCPT TO
+DATA (confirms msg is ready)
+
+QUIT
+
+RETRIEVE FROM <UserName>
+
