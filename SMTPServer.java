@@ -94,11 +94,10 @@ public class SMTPServer implements ClientServerConstants {
 
 				// HELO
 				if(cmd.equals("HELO")) {
-					// NOTE: "HELO" is sent when the client attempts to connect with the server
-					doHelo();
+					// Send status code 
+					pwt.println("250 - HELO - OK");
+					pwt.flush();
 				}
-            
-            
 			}// end of while
 		}
 	}
@@ -164,11 +163,4 @@ public class SMTPServer implements ClientServerConstants {
          result += replaceVal;
 	  }      
 	}// end of doEncrypt
-
-	/**
-	 * 
-	 */
-	private void doHelo() {
-
-	}
 }

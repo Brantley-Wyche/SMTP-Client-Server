@@ -88,9 +88,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
         dialog.setContentText("Username:");
         
         Optional<String> result = dialog.showAndWait();
- 
- 
- 
+
         if (result.isPresent()) {//Just opens the main program
          
             // get the input username the user put
@@ -243,13 +241,11 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          pwt.println("HELO");
          pwt.flush();
          
-         
-         
          // Get response from the server
          String serverResp = scn.nextLine();
          
          // response needs to contain 250
-         if(serverResp.equals("250 - HELO")){ 
+         if(serverResp.equals("250 - HELO - OK")){ 
             // Let user know they successfully connected to the server
             Alert alert = new Alert(AlertType.INFORMATION, "Connected!");
                alert.showAndWait();
