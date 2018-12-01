@@ -43,7 +43,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
    //Buttons
    private Button btnSend = new Button("Send");
-   private Button btnRetrieve = new Button("Receive");
+   private Button btnRetrieve = new Button("Retrieve");
 
 
 	// Sockets

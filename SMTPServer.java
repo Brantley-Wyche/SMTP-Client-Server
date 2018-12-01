@@ -26,9 +26,10 @@ public class SMTPServer implements ClientServerConstants {
 	Queue<String> msgQueue = new LinkedList<>();
 
 	// HashMap for storing messages with user
-	Map<String, ArrayList<String>> msgStore = new HashMap<>();
-
-	/**
+	Map<String, ArrayList<String>> msgStore = null;
+   
+   
+   /**
 	 * Main
 	 */
 	public static void main(String[] args) {
@@ -169,11 +170,8 @@ public class SMTPServer implements ClientServerConstants {
 
                // retrieve messages for this user
                doRetrieve(user);
-
-
-
-
             }
+ 
 			}// end of while
 		}
 	}
@@ -225,10 +223,45 @@ public class SMTPServer implements ClientServerConstants {
 		}
 	}
 
+
 	/**
 	 * Starts sserver thread and socket to listen for connections
 	 */
 	private void doStart() {
+      msgStore = new HashMap<>();
+      ArrayList<String> list = new ArrayList<>();
+      list.add("Hello there");
+      msgStore.put("bxm5989",list);
+      
+      // Look for map object file first before starting
+      // try{
+//          File msgFile = new File(MSG_FILE);
+//          ois = new ObjectInputStream(new FileInputStream(msgFile));
+// 
+//          // Checking if the fiel exists
+//          if(!msgFile.exists()){
+//             msgStore = new HashMap<>();
+//          }else{
+//          
+//             // General object to readObject
+//             Object o = ois.readObject();
+// 
+//             if(o instanceof HashMap){
+//                 msgStore = (Map)o; // cast to hashmap
+//             }
+//             
+//          }// end of else
+//       }
+//       catch(FileNotFoundException fnfe){
+//          fnfe.printStackTrace();
+//       }
+//       catch(ClassNotFoundException cnfe){
+//          cnfe.printStackTrace();
+//       }
+//       catch(IOException ioe){
+//          ioe.printStackTrace();
+//       }
+   
 		// Starts ServerStart thread
 		new ServerStart().start();
 	}
@@ -239,6 +272,16 @@ public class SMTPServer implements ClientServerConstants {
 	private void doStop() {
 		// Closes sSocket and streams
 		try {
+         // Make file object
+         File file = new File(MSG_FILE);
+         oos = new ObjectOutputStream(new FileOutputStream(file)); // objectoutputstream
+         
+         // writes the hashmap into separate msg file
+         oos.writeObject(msgStore);
+         oos.flush();
+      
+      
+         // Close stream
 			sSocket.close();
 			scn.close();
 			pwt.close();
@@ -247,50 +290,27 @@ public class SMTPServer implements ClientServerConstants {
 	}
 
 
-
 	/**
 	 * On command "RETRIEVE FROM USER", the server will look for users that have the USER combination and return all their messages
 	 */
 	private void doRetrieve(String _user) {
-      String user = _user;
-      try{
-         File msgFile = new File(MSG_FILE);
-         ois = new ObjectInputStream(new FileInputStream(msgFile));
+         String user = _user;
 
+         // Send messages back to user
+         ArrayList<String> allMail = msgStore.get(user);
+         String mail = "";
 
-         // Checking if the fiel exists
-         if(!msgFile.exists()){
-            msgFile.createNewFile();
-         }else{
-            // General object to readObject
-            Object o = ois.readObject();
-
-            if(o instanceof HashMap){
-                msgStore = (Map)o; // cast to hashmap
-								
-                // Send messages back to user
-                ArrayList<String> allMail = msgStore.get(user);
-                String mail = "";
-
-                // interate through list
-                for(String m : allMail) {
-                  mail += m + "\n";
-                }
-
-                // Send mail
-                pwt.println(mail);
-                pwt.flush();
-            }
-
-         }
-      }
-      catch(IOException ioe){
-         ioe.printStackTrace();
-      }
-      catch(ClassNotFoundException cnfe){
-         cnfe.printStackTrace();
-      }
+         // interate through list
+         for(String m : allMail) {
+             mail += m + "\n";
+          }
+                
+          // send Mail to user
+          pwt.println(mail);
+          pwt.flush();
 	}// end of doRetrieve
+
+
 
 	/**
 	 * Encrypts message received from client with Ceasar Cipher of Shift 13
