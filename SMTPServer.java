@@ -97,7 +97,9 @@ public class SMTPServer implements ClientServerConstants {
 					// NOTE: "HELO" is sent when the client attempts to connect with the server
 					doHelo();
 				}
-			}
+            
+            
+			}// end of while
 		}
 	}
 
