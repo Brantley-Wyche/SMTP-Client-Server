@@ -51,11 +51,21 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	public static final int PORT_NUM = 30000;
    
    // Host String (IP) 
-   private String host = "";
+   private String host = "localhost";
 
 	// I/O
 	private Scanner scn = null;
 	private PrintWriter pwt = null;
+   
+   
+   // User File
+   public static final String USER_FILE = "Users.txt";
+   
+   // User Name from user input
+   private String inputUserName = "";
+   
+   // Adds all read users into a list
+   private ArrayList<String> userList = new ArrayList<String>();
    
    
    
@@ -76,17 +86,33 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
         dialog.setTitle("Login");
         dialog.setHeaderText("Enter your username:");
         dialog.setContentText("Username:");
- 
+        
         Optional<String> result = dialog.showAndWait();
  
+ 
+ 
         if (result.isPresent()) {//Just opens the main program
-             
+         
+            // get the input username the user put
+            inputUserName = result.get();
+            
+            // If user is allowed access
+            if(readUsers()){
+               doConnect();
+            }else{
+               // Error for user not existing
+               Alert alert = new Alert(AlertType.ERROR, "User does not exist");
+                  alert.showAndWait();
+                
+               System.exit(0); // kill program
+            }
+            
         } else {//Kills the program
              System.exit(0);
         }
       
       stage = _stage;                        
-      stage.setTitle("FirstGUI");       
+      stage.setTitle("SMTP Client");       
       
       mBar.getMenus().addAll(mOptions);   
       mOptions.getItems().addAll(miLogout);  
@@ -143,20 +169,25 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       //button handlers
       btnSend.setOnAction(this);
       btnRetrieve.setOnAction(this);
-      miLogout.setOnAction(new EventHandler<ActionEvent>(){//Anonymous inner class to logout
+      
+      // Logout action handler
+      miLogout.setOnAction(new EventHandler<ActionEvent>(){
          public void handle(ActionEvent event){
-            System.exit(0);
+               doDisconnect();
          }
       });
 
       //Brings up the main program after the dialog goes away
       revealStage();
 	}
+  
    
    
+   /**
+   * Shows the stage
+   */
    public void revealStage() {//Shows the main program
-      scene = new Scene(root, 650, 650);   
-                                             
+      scene = new Scene(root, 650, 650);                                       
       stage.setScene(scene);                
       stage.show();                          
 
@@ -192,19 +223,39 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
 	/**
 	 * Sends command 'HELO' to server then connects 
+    * Only available when users are validated from the list of users
+    * @return void
 	 */
 	private void doConnect() {
 		// TODO: the socket will take host, port, however the host will be different per server that we will connect to, whereas the port will always be PORT_NUM
       try{
-		 // Connect & open streams
+		   // Connect & open streams
          socket = new Socket(host, PORT_NUM);
          scn = new Scanner(new InputStreamReader(socket.getInputStream()));
          pwt = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+         
+         // Set fields
+         tfFrom.setText(inputUserName);
+         tfServer.setText(host);
          
          
          // Send command to server
          pwt.println("HELO");
          pwt.flush();
+         
+         
+         
+         // Get response from the server
+         String serverResp = scn.nextLine();
+         
+         // response needs to contain 250
+         if(serverResp.equals("250 - HELO")){ 
+            // Let user know they successfully connected to the server
+            Alert alert = new Alert(AlertType.INFORMATION, "Connected!");
+               alert.showAndWait();
+         }// end of if 
+         
+         
       }
       catch(IOException ioe){
          ioe.printStackTrace();
@@ -224,6 +275,8 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          socket.close();
          pwt.close();
          scn.close();
+         
+         System.exit(0);
       }
       catch(IOException ioe){
          ioe.printStackTrace();
@@ -279,4 +332,36 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 			}
 		}
 	}
+   
+   
+   
+   /**
+   * readUsers
+   */
+   public boolean readUsers(){
+      try{
+         File file = new File(USER_FILE);
+         Scanner scn = new Scanner(new FileInputStream(file));
+         
+         String name = "";
+         
+         // Read file with users
+         while(scn.hasNextLine()){
+            userList.add(scn.nextLine());
+         } 
+         
+         // Cycle through all users in the list
+         for(int i = 0; i < userList.size(); i++){
+            if(inputUserName.equals(userList.get(i))){
+               inputUserName = userList.get(i);
+               return true; // if user is found to exist
+            }// end of for     
+         }// end of for loop
+    
+      }
+      catch(IOException ioe){
+      }
+      
+      return false;
+   }
 }
