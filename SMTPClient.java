@@ -15,7 +15,7 @@ import javafx.geometry.*;
  * SMTP Client
  * Client for ISTE-121 final project, connects to a server and will send commands to the server to process
  * @author Brandon Mok + Xin Liu + Brantley Wyche
- * @version 11/7/18
+ * @version 11/29/18
  */
 public class SMTPClient extends Application {
 	// Attributes
