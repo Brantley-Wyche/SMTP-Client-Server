@@ -16,9 +16,12 @@ public class SMTPServer implements ClientServerConstants {
 	private Scanner scn = null;
 	private PrintWriter pwt = null;
 
-	// Queue for storing messages
+	// Queue for queueing messages
 	Queue<String> msgQueue = new LinkedList<>();
-   
+
+	// HashMap for storing messages with user
+	Map<String, String> msgStore = new HashMap<>();
+
 	/**
 	 * Main
 	 */
@@ -29,7 +32,7 @@ public class SMTPServer implements ClientServerConstants {
 
 	/**
 	 * ServerStart
-	 * 
+	 *
 	 * Thread that will be instantiated on doStart(), this class will start a server at indicated socket and port
 	 */
 	class ServerStart extends Thread {
@@ -52,21 +55,21 @@ public class SMTPServer implements ClientServerConstants {
 					cSocket = sSocket.accept();
 					System.out.println("Connection established!");
 				}
-				catch(IOException ioe) { 
-					ioe.printStackTrace(); 
-					return; 
+				catch(IOException ioe) {
+					ioe.printStackTrace();
+					return;
 				}
 
-				// Start thread for ClientConnection 
+				// Start thread for ClientConnection
 				ClientConnection ct = new ClientConnection(cSocket);
-				ct.start(); 
+				ct.start();
 			}
 		}
 	}
 
 	/**
 	 * ClientConnection
-	 * 
+	 *
 	 * Thread that will be instantiated while the client connects with the server socket. This class will handle handle the interaction between client and server
 	 */
 	class ClientConnection extends Thread {
@@ -77,7 +80,7 @@ public class SMTPServer implements ClientServerConstants {
 		public ClientConnection(Socket _cSocket) {
 			this.cSocket = _cSocket;
 		}
-		
+
 		// Run
 		public void run() {
 			// Prepare I/O
@@ -88,15 +91,66 @@ public class SMTPServer implements ClientServerConstants {
 			catch(IOException ioe) { ioe.printStackTrace(); }
 
 			// Listen for commands
-			while(scn.hasNextLine()) { 
+			while(scn.hasNextLine()) {
 				// Get command
 				String cmd = scn.nextLine();
 
 				// HELO
 				if(cmd.equals("HELO")) {
-					// Send status code 
+					// Send status code
 					pwt.println("250 - HELO - OK");
 					pwt.flush();
+				}
+				// MAIL FROM
+				else if(cmd.startsWith("MAIL FROM:")) {
+					// Get the username
+					String username = cmd.substring(8);
+
+					// Send status code
+					pwt.println("250 - MAIL FROM - OK");
+					System.out.println("250 - MAIL FROM - OK");
+					pwt.flush();
+
+					// RCPT TO
+					String cmd2 = scn.nextLine();
+					if(cmd2.startsWith("RCPT TO:")) {
+						// Get the username
+						String username2 = cmd2.substring(6);
+
+						// Send status code
+						pwt.println("250 - RCPT TO - OK");
+						System.out.println("250 - RCPT TO - OK");
+						pwt.flush();
+
+						// DATA
+						String cmd3 = scn.nextLine();
+						if(cmd3.equals("DATA")) {
+							// Send status code
+							pwt.println("250 - DATA - OK");
+							System.out.println("250 - DATA - OK");
+							pwt.flush();
+
+							// The client will send the message next
+							String message = scn.nextLine();
+
+							// Add From: into the message
+							String fullMessage = "Mail From: " + username + "\n" + message + "\n";
+
+							// Encrypt message
+							String encryptedMsg = doEncrypt(fullMessage);
+
+							// Prepare schema for encrypted msg
+							String finalMsg = EMAIL_START + encryptedMsg + EMAIL_END;
+
+							// Add to queue
+							msgQueue.add(finalMsg);
+
+							// Send status code
+							pwt.println("250 - Message Queued - OK");
+							System.out.println("250 - Message Queued - OK");
+							pwt.flush();
+						}
+					}
 				}
 			}// end of while
 		}
@@ -104,15 +158,17 @@ public class SMTPServer implements ClientServerConstants {
 
 	/**
 	 * MailThread
-	 * 
+	 *
 	 * Thread that will read from the queue and store the message with its corresponding user in a file
-	 * 
-	 * There will a list of users authorized to recieve messages on this server.   
+	 *
+	 * There will a list of users authorized to recieve messages on this server.
 	 */
 	class MailThread extends Thread {
-		public void run() {}
+		public void run() {
+			// TODO: Add message in queue to map
+		}
 	}
-	
+
 	/**
 	 * Starts sserver thread and socket to listen for connections
 	 */
@@ -153,14 +209,16 @@ public class SMTPServer implements ClientServerConstants {
 	/**
 	 * Encrypts message received from client with Ceasar Cipher of Shift 13
 	 */
-	private void doEncrypt(String message) {
+	private String doEncrypt(String message) {
       String result = "";
-      
+
       for(int i = 0; i < message.length(); i++){
          int characterPos = LETTERS.indexOf(message.charAt(i));
          int keyValue = (SHIFT + characterPos) % 26;
          char replaceVal = LETTERS.charAt(keyValue);
          result += replaceVal;
-	  }      
+	  }
+
+	  return result;
 	}// end of doEncrypt
 }
