@@ -163,18 +163,18 @@ public class SMTPServer implements ClientServerConstants {
 					}
 				}
 				else if(cmd.startsWith("RETRIEVE FROM:")){
-				// Get username
-				String user = cmd.substring(14);
+					// Get username
+					String user = cmd.substring(14);
 
-				// retrieve messages for this user
-				doRetrieve(user);
+					// retrieve messages for this user
+					doRetrieve(user);
 				}
 				else if(cmd.equals("QUIT")) {
 					// Send response;
+					pwt.println("221 - QUIT - OK"); 
 					pwt.flush();
 
 					// Stop streams, write HashMap
-					pwt.println("221 - QUIT - OK") into obj file
 					doStop();
 
 					// Kill program
@@ -286,7 +286,9 @@ public class SMTPServer implements ClientServerConstants {
 
          // writes the hashmap into separate msg file
          oos.writeObject(msgStore);
-         oos.flush();
+		 oos.flush();
+		 
+		 System.out.println("Saving HashMap ...");
 
 
          // Close stream
