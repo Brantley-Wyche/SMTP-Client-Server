@@ -57,7 +57,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	private Scanner scn = null;
 	private PrintWriter pwt = null;
 
-
    // User File
    public static final String USER_FILE = "Users.txt";
 
@@ -66,9 +65,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
    // Adds all read users into a list
    private ArrayList<String> userList = new ArrayList<String>();
-
-
-
 
 	// Main
 	public static void main(String[] args) {
@@ -92,12 +88,14 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
         if (result.isPresent()) {//Just opens the main program
 
             // get the input username the user put
-            inputUserName = result.get();
+            inputUserName = result.get().trim();
 
             // If user is allowed access
-            if(readUsers()){
+            if(readUsers(inputUserName)){
+               // Connect
                doConnect();
-            }else{
+            }
+            else{
                // Error for user not existing
                Alert alert = new Alert(AlertType.ERROR, "User does not exist");
                   alert.showAndWait();
@@ -105,7 +103,8 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
                System.exit(0); // kill program
             }
 
-        } else {//Kills the program
+        } 
+        else {//Kills the program
              System.exit(0);
         }
 
@@ -179,8 +178,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       revealStage();
 	}
 
-
-
    /**
    * Shows the stage
    */
@@ -234,7 +231,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          tfFrom.setText(inputUserName);
          tfServer.setText(host);
 
-
          // Send command to server
          pwt.println("HELO");
          pwt.flush();
@@ -248,7 +244,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
             Alert alert = new Alert(AlertType.INFORMATION, "Connected!");
                alert.showAndWait();
          }// end of if
-
 
       }
       catch(IOException ioe){
@@ -292,49 +287,85 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	 * The order of commands must all be approved by the server before sending the message
 	 */
 	private void doSend() {
-		// Sends Server the "MAIL FROM" command
-      pwt.println("MAIL FROM:" + tfFrom);
-      pwt.flush();
+      // Get values
+      String fromUser = tfFrom.getText().trim();
+      String toUser = tfTo.getText().trim();
+      String msg = taMessage.getText().trim();
 
-		// Reads the response from the server
-		String resp = scn.nextLine();
+      // Check for empty
+      if(fromUser.length() > 0 && toUser.length() > 0 && msg.length() > 0) {
 
-		// Response from the server must be "OK"
-		if(resp.equals("250 - MAIL FROM - OK")){
-			// Sends "RCPT" to server
-         pwt.println("RCPT TO:" + tfTo);
-         pwt.flush();
+         // Check if the toUser exists in file
+         if(readUsers(toUser)) {
 
-			// Read response from server again
-			String resp2 = scn.nextLine();
-
-			// Check again that the response is "OK"
-			if(resp2.equals("250 - RCPT TO - OK")){
-
-				// Sends "DATA" to server
-            pwt.println("DATA");
+            // Sends Server the "MAIL FROM" command
+            pwt.println("MAIL FROM:" + fromUser);
             pwt.flush();
 
-            // Read resp
-				String resp3 = scn.nextLine();
+            // Reads the response from the server
+            String resp = scn.nextLine();
 
-            // Check resp for "OK"
-				if(resp3.equals("250 - DATA - OK")){
-               // Show success alert
-               Alert alert = new Alert(AlertType.INFORMATION, "Message sent!");
+            // Response from the server must be "OK"
+            if(resp.equals("250 - MAIL FROM - OK")){
+               // Sends "RCPT" to server
+               pwt.println("RCPT TO:" + toUser);
+               pwt.flush();
 
+               // Read response from server again
+               String resp2 = scn.nextLine();
+
+               // Check again that the response is "OK"
+               if(resp2.equals("250 - RCPT TO - OK")){
+
+                  // Sends "DATA" to server
+                  pwt.println("DATA");
+                  pwt.flush();
+
+                  // Read resp
+                  String resp3 = scn.nextLine();
+
+                  // Check resp for "OK"
+                  if(resp3.equals("250 - DATA - OK")){
+
+                     // Send msg
+                     pwt.println(msg); 
+                     pwt.flush();
+
+                     // Read resp
+                     String resp4 = scn.nextLine();
+
+                     // Check resp for "OK"
+                     if(resp4.equals("250 - Message Queued - OK")) {
+                        // Show success alert
+                        Alert alert = new Alert(AlertType.INFORMATION, "Message sent!");
+
+                        alert.showAndWait();
+                     }
+                  }
+               }
+            }
+         } 
+         // If user does not exist in file
+         else {
+            // Show alert
+            Alert alert = new Alert(AlertType.ERROR, "The recipient does not exist on this server!");
                alert.showAndWait();
-				}
-			}
-		}
+         }
+      }
+      // If fields are not all filled out
+      else {
+         // Show alert
+         Alert alert = new Alert(AlertType.ERROR, "All fields must be filled out before sending!");
+            alert.showAndWait();
+      } 
 	}
-
-
 
    /**
    * readUsers
+   * 
+   * @params String username
    */
-   public boolean readUsers(){
+   public boolean readUsers(String user) {
       try{
          File file = new File(USER_FILE);
          Scanner scn = new Scanner(new FileInputStream(file));
@@ -348,16 +379,17 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
          // Cycle through all users in the list
          for(int i = 0; i < userList.size(); i++){
-            if(inputUserName.equals(userList.get(i))){
-               inputUserName = userList.get(i);
-               return true; // if user is found to exist
+            if(user.equals(userList.get(i))){
+               // if user is found to exist
+               return true; 
             }// end of for
          }// end of for loop
-
       }
-      catch(IOException ioe){
+      catch(IOException ioe) {
+         ioe.printStackTrace();
       }
 
+      // False, if not found
       return false;
    }
 }

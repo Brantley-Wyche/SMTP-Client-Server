@@ -20,7 +20,7 @@ public class SMTPServer implements ClientServerConstants {
 	Queue<String> msgQueue = new LinkedList<>();
 
 	// HashMap for storing messages with user
-	Map<String, String> msgStore = new HashMap<>();
+	Map<String, ArrayList<String>> msgStore = new HashMap<>();
 
 	/**
 	 * Main
@@ -99,12 +99,13 @@ public class SMTPServer implements ClientServerConstants {
 				if(cmd.equals("HELO")) {
 					// Send status code
 					pwt.println("250 - HELO - OK");
+					System.out.println("250 - HELO - OK");
 					pwt.flush();
 				}
 				// MAIL FROM
 				else if(cmd.startsWith("MAIL FROM:")) {
 					// Get the username
-					String username = cmd.substring(8);
+					String username = cmd.substring(10);
 
 					// Send status code
 					pwt.println("250 - MAIL FROM - OK");
@@ -115,7 +116,7 @@ public class SMTPServer implements ClientServerConstants {
 					String cmd2 = scn.nextLine();
 					if(cmd2.startsWith("RCPT TO:")) {
 						// Get the username
-						String username2 = cmd2.substring(6);
+						String username2 = cmd2.substring(8);
 
 						// Send status code
 						pwt.println("250 - RCPT TO - OK");
@@ -141,9 +142,13 @@ public class SMTPServer implements ClientServerConstants {
 
 							// Prepare schema for encrypted msg
 							String finalMsg = EMAIL_START + encryptedMsg + EMAIL_END;
-
+							
 							// Add to queue
 							msgQueue.add(finalMsg);
+
+							// Start MailThread
+							MailThread mt = new MailThread(username2, msgQueue.peek());
+							mt.start();
 
 							// Send status code
 							pwt.println("250 - Message Queued - OK");
@@ -164,8 +169,42 @@ public class SMTPServer implements ClientServerConstants {
 	 * There will a list of users authorized to recieve messages on this server.
 	 */
 	class MailThread extends Thread {
+		// Attributes
+		String username = "";
+		String message = "";
+
+		// Constructor
+		public MailThread(String _username, String _message) {
+			this.username = _username;
+			this.message = _message;
+		}
+
+		// Run
 		public void run() {
-			// TODO: Add message in queue to map
+			// Map will take the username as key, ArrayList as value
+			
+			// Check if username exists in map first
+			if(msgStore.containsKey(username)) {
+				// Get user's current messages
+				ArrayList<String> userMessages =  msgStore.get(username); 
+
+				// Add message to userMessages
+				userMessages.add(message);
+
+				// Update map
+				msgStore.put(username, userMessages);
+			}
+			// If username does not exist
+			else {
+				// Create Arraylist
+				ArrayList<String> allMessages = new ArrayList<>();
+				
+				// Add to allMesssages
+				allMessages.add(message);
+
+				// Add to map
+				msgStore.put(username, allMessages);
+			}
 		}
 	}
 
@@ -194,15 +233,6 @@ public class SMTPServer implements ClientServerConstants {
 	 * On command "RETRIEVE FROM USER+PASSWORD", the server will look for users that have the USER+PASSWORD combination and return all their messages
 	 */
 	private void doRetrieve() {
-
-	}
-
-	/**
-	 * On command "MAIL FROM: <address>", "RCPT TO: <address>", and then "DATA", the server will send the message sent from client to the indicated address.
-	 *
-	 * Additionally, the server will use a Ceasar Cipher of shift 13 on the message.
-	 */
- 	private void doSend() {
 
 	}
 
