@@ -162,19 +162,19 @@ public class SMTPServer implements ClientServerConstants {
 						}
 					}
 				}
-        else if(cmd.startsWith("RETRIEVE FROM:")){
-           // Get username
-           String user = cmd.substring(14);
+				else if(cmd.startsWith("RETRIEVE FROM:")){
+				// Get username
+				String user = cmd.substring(14);
 
-           // retrieve messages for this user
-           doRetrieve(user);
-        }
+				// retrieve messages for this user
+				doRetrieve(user);
+				}
 				else if(cmd.equals("QUIT")) {
-					// Send response
-					pwt.println("221 - QUIT - OK");
+					// Send response;
 					pwt.flush();
 
-					// Stop streams, write HashMap into obj file
+					// Stop streams, write HashMap
+					pwt.println("221 - QUIT - OK") into obj file
 					doStop();
 
 					// Kill program
