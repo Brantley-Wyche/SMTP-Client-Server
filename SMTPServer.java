@@ -16,7 +16,6 @@ public class SMTPServer implements ClientServerConstants {
 	private Scanner scn = null;
 	private PrintWriter pwt = null;
 
-
    // Object streams
    private ObjectInputStream ois = null;
    private ObjectOutputStream oos = null;
@@ -27,9 +26,8 @@ public class SMTPServer implements ClientServerConstants {
 
 	// HashMap for storing messages with user
 	Map<String, ArrayList<String>> msgStore = null;
-   
-   
-   /**
+
+	/**
 	 * Main
 	 */
 	public static void main(String[] args) {
@@ -170,8 +168,23 @@ public class SMTPServer implements ClientServerConstants {
 
                // retrieve messages for this user
                doRetrieve(user);
+<<<<<<< HEAD
             }
- 
+
+=======
+			}
+			else if(cmd.equals("QUIT")) {
+				// Send response
+				pwt.println("221 - QUIT - OK");
+				pwt.flush();
+
+				// Stop streams, write HashMap into obj file
+				doStop();
+
+				// Kill program
+				System.exit(0);
+			}
+>>>>>>> added logout
 			}// end of while
 		}
 	}
@@ -232,24 +245,24 @@ public class SMTPServer implements ClientServerConstants {
       ArrayList<String> list = new ArrayList<>();
       list.add("Hello there");
       msgStore.put("bxm5989",list);
-      
+
       // Look for map object file first before starting
       // try{
 //          File msgFile = new File(MSG_FILE);
 //          ois = new ObjectInputStream(new FileInputStream(msgFile));
-// 
+//
 //          // Checking if the fiel exists
 //          if(!msgFile.exists()){
 //             msgStore = new HashMap<>();
 //          }else{
-//          
+//
 //             // General object to readObject
 //             Object o = ois.readObject();
-// 
+//
 //             if(o instanceof HashMap){
 //                 msgStore = (Map)o; // cast to hashmap
 //             }
-//             
+//
 //          }// end of else
 //       }
 //       catch(FileNotFoundException fnfe){
@@ -261,7 +274,7 @@ public class SMTPServer implements ClientServerConstants {
 //       catch(IOException ioe){
 //          ioe.printStackTrace();
 //       }
-   
+
 		// Starts ServerStart thread
 		new ServerStart().start();
 	}
@@ -275,12 +288,12 @@ public class SMTPServer implements ClientServerConstants {
          // Make file object
          File file = new File(MSG_FILE);
          oos = new ObjectOutputStream(new FileOutputStream(file)); // objectoutputstream
-         
+
          // writes the hashmap into separate msg file
          oos.writeObject(msgStore);
          oos.flush();
-      
-      
+
+
          // Close stream
 			sSocket.close();
 			scn.close();
@@ -304,7 +317,7 @@ public class SMTPServer implements ClientServerConstants {
          for(String m : allMail) {
              mail += m + "\n";
           }
-                
+
           // send Mail to user
           pwt.println(mail);
           pwt.flush();

@@ -103,13 +103,20 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
                System.exit(0); // kill program
             }
 
-        } 
+        }
         else {//Kills the program
              System.exit(0);
         }
 
       stage = _stage;
       stage.setTitle("SMTP Client");
+
+      // Set miLogout action
+      miLogout.setOnAction(new EventHandler<ActionEvent>() {
+         public void handle(ActionEvent evt) {
+            doDisconnect();
+         }
+      });
 
       mBar.getMenus().addAll(mOptions);
       mOptions.getItems().addAll(miLogout);
@@ -200,9 +207,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 			case "Connect":
 				doConnect(); // HELO
 				break;
-			case "Disconnect":
-				doDisconnect(); // QUIT
-				break;
 			case "Retrieve":
 				doRetrieve(); // RETRIEVE FROM USER+PASSWORD (needs double checking, not sure)
 				break;
@@ -220,7 +224,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
     * @return void
 	 */
 	private void doConnect() {
-		// TODO: the socket will take host, port, however the host will be different per server that we will connect to, whereas the port will always be PORT_NUM
+      // Connect to server socket
       try{
 		   // Connect & open streams
          socket = new Socket(host, PORT_NUM);
@@ -239,15 +243,22 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          String serverResp = scn.nextLine();
 
          // response needs to contain 250
-         if(serverResp.equals("250 - HELO - OK")){
+         if(serverResp.equals("250 - HELO - OK")) {
             // Let user know they successfully connected to the server
             Alert alert = new Alert(AlertType.INFORMATION, "Connected!");
                alert.showAndWait();
          }// end of if
 
       }
-      catch(IOException ioe){
+      catch(IOException ioe) {
          ioe.printStackTrace();
+
+         // Show alert
+         Alert alert = new Alert(AlertType.ERROR, "Could not connect to server!");
+            alert.showAndWait();
+
+         // Kill client
+         System.exit(0);
       }
 	}
 
@@ -260,12 +271,18 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          pwt.println("QUIT");
          pwt.flush();
 
-         // Then closes the connections and streams
-         socket.close();
-         pwt.close();
-         scn.close();
+         // Get status code
+         String resp = scn.nextLine();
 
-         System.exit(0);
+         // Check for "OK"
+         if(resp.equals("221 - QUIT - OK")) {
+            // Then closes the connections and streams
+            socket.close();
+            pwt.close();
+            scn.close();
+
+            System.exit(0);
+         }
       }
       catch(IOException ioe){
          ioe.printStackTrace();
@@ -328,7 +345,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
                   if(resp3.equals("250 - DATA - OK")){
 
                      // Send msg
-                     pwt.println(msg); 
+                     pwt.println(msg);
                      pwt.flush();
 
                      // Read resp
@@ -344,7 +361,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
                   }
                }
             }
-         } 
+         }
          // If user does not exist in file
          else {
             // Show alert
@@ -357,12 +374,12 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          // Show alert
          Alert alert = new Alert(AlertType.ERROR, "All fields must be filled out before sending!");
             alert.showAndWait();
-      } 
+      }
 	}
 
    /**
    * readUsers
-   * 
+   *
    * @params String username
    */
    public boolean readUsers(String user) {
@@ -381,7 +398,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          for(int i = 0; i < userList.size(); i++){
             if(user.equals(userList.get(i))){
                // if user is found to exist
-               return true; 
+               return true;
             }// end of for
          }// end of for loop
       }
