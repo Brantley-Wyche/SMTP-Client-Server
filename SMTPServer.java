@@ -16,6 +16,12 @@ public class SMTPServer implements ClientServerConstants {
 	private Scanner scn = null;
 	private PrintWriter pwt = null;
 
+
+   // Object streams
+   private ObjectInputStream ois = null;
+   private ObjectOutputStream oos = null;
+   public static final String MSG_FILE = "userMSGS.obj";
+
 	// Queue for queueing messages
 	Queue<String> msgQueue = new LinkedList<>();
 
@@ -142,7 +148,7 @@ public class SMTPServer implements ClientServerConstants {
 
 							// Prepare schema for encrypted msg
 							String finalMsg = EMAIL_START + encryptedMsg + EMAIL_END;
-							
+
 							// Add to queue
 							msgQueue.add(finalMsg);
 
@@ -157,6 +163,17 @@ public class SMTPServer implements ClientServerConstants {
 						}
 					}
 				}
+            else if(cmd.startsWith("RETRIEVE FROM:")){
+               // Get username
+               String user = cmd.substring(14);
+
+               // retrieve messages for this user
+               doRetrieve(user);
+
+
+
+
+            }
 			}// end of while
 		}
 	}
@@ -182,11 +199,11 @@ public class SMTPServer implements ClientServerConstants {
 		// Run
 		public void run() {
 			// Map will take the username as key, ArrayList as value
-			
+
 			// Check if username exists in map first
 			if(msgStore.containsKey(username)) {
 				// Get user's current messages
-				ArrayList<String> userMessages =  msgStore.get(username); 
+				ArrayList<String> userMessages =  msgStore.get(username);
 
 				// Add message to userMessages
 				userMessages.add(message);
@@ -198,7 +215,7 @@ public class SMTPServer implements ClientServerConstants {
 			else {
 				// Create Arraylist
 				ArrayList<String> allMessages = new ArrayList<>();
-				
+
 				// Add to allMesssages
 				allMessages.add(message);
 
@@ -229,12 +246,51 @@ public class SMTPServer implements ClientServerConstants {
 		catch(IOException ioe) { ioe.printStackTrace(); }
 	}
 
-	/**
-	 * On command "RETRIEVE FROM USER+PASSWORD", the server will look for users that have the USER+PASSWORD combination and return all their messages
-	 */
-	private void doRetrieve() {
 
-	}
+
+	/**
+	 * On command "RETRIEVE FROM USER", the server will look for users that have the USER combination and return all their messages
+	 */
+	private void doRetrieve(String _user) {
+      String user = _user;
+      try{
+         File msgFile = new File(MSG_FILE);
+         ois = new ObjectInputStream(new FileInputStream(msgFile));
+
+
+         // Checking if the fiel exists
+         if(!msgFile.exists()){
+            msgFile.createNewFile();
+         }else{
+            // General object to readObject
+            Object o = ois.readObject();
+
+            if(o instanceof HashMap){
+                msgStore = (Map)o; // cast to hashmap
+								
+                // Send messages back to user
+                ArrayList<String> allMail = msgStore.get(user);
+                String mail = "";
+
+                // interate through list
+                for(String m : allMail) {
+                  mail += m + "\n";
+                }
+
+                // Send mail
+                pwt.println(mail);
+                pwt.flush();
+            }
+
+         }
+      }
+      catch(IOException ioe){
+         ioe.printStackTrace();
+      }
+      catch(ClassNotFoundException cnfe){
+         cnfe.printStackTrace();
+      }
+	}// end of doRetrieve
 
 	/**
 	 * Encrypts message received from client with Ceasar Cipher of Shift 13
