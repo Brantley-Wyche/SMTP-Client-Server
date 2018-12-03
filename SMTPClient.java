@@ -18,7 +18,7 @@ import java.net.*;
  * @author Brandon Mok + Xin Liu + Brantley Wyche
  * @version 11/29/18
  */
-public class SMTPClient extends Application implements EventHandler<ActionEvent>{
+public class SMTPClient extends Application implements EventHandler<ActionEvent>, ClientServerConstants {
    // GUI
 	private Stage stage;
    private Scene scene;
@@ -45,10 +45,8 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
    private Button btnSend = new Button("Send");
    private Button btnRetrieve = new Button("Retrieve");
 
-
 	// Sockets
 	private Socket socket = null;
-	public static final int PORT_NUM = 30000;
 
    // Host String (IP)
    private String host = "localhost";
@@ -205,15 +203,13 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 		// Case
 		switch(btn.getText()) {
 			case "Connect":
-				doConnect(); // HELO
+				doConnect(); 
 				break;
 			case "Retrieve":
-				doRetrieve(); // RETRIEVE FROM USER+PASSWORD (needs double checking, not sure)
+				doRetrieve(); 
 				break;
 			case "Send":
 				doSend();
-				// NOTE: for doSend(), SMTP protocol requires MAIL FROM:<address> then RCPT TO: <address> then DATA before finally sending the message.
-				// MAIL FROM -> RCPT TO -> DATA
 				break;
 		}
 	}
@@ -221,13 +217,12 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	/**
 	 * Sends command 'HELO' to server then connects
     * Only available when users are validated from the list of users
-    * @return void
 	 */
 	private void doConnect() {
       // Connect to server socket
       try{
 		   // Connect & open streams
-         socket = new Socket(host, PORT_NUM);
+         socket = new Socket(host, SERVER_PORT);
          scn = new Scanner(new InputStreamReader(socket.getInputStream()));
          pwt = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 
@@ -294,19 +289,17 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	 */
 	private void doRetrieve() {
       try{
-   		// Send command
-           pwt.println("RETRIEVE FROM:"+ tfFrom.getText()); /* Still need the username. Need the userlist */
-           pwt.flush();
-           
-           // Read from server the messages
-           String msg = scn.nextLine();
-           taMailbox.setText(msg+"\n");
-           
-        }
-        catch(NullPointerException npe){
-            npe.printStackTrace();
-        }
-        
+         // Send command
+         pwt.println("RETRIEVE FROM:"+ tfFrom.getText());
+         pwt.flush();
+
+         // Read from server the messages
+         String msg = scn.nextLine();
+         taMailbox.setText(msg+"\n");
+      }
+      catch(NullPointerException npe){
+         npe.printStackTrace();
+      }
 	}
 
 	/**
@@ -394,6 +387,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
    * @params String username
    */
    public boolean readUsers(String user) {
+      // Check if user is authorized
       try{
          File file = new File(USER_FILE);
          Scanner scn = new Scanner(new FileInputStream(file));

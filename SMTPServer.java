@@ -16,16 +16,16 @@ public class SMTPServer implements ClientServerConstants {
 	private Scanner scn = null;
 	private PrintWriter pwt = null;
 
-   // Object streams
-   private ObjectInputStream ois = null;
-   private ObjectOutputStream oos = null;
-   public static final String MSG_FILE = "userMSGS.obj";
+	// Object streams
+	private ObjectInputStream ois = null;
+	private ObjectOutputStream oos = null;
+	public static final String MSG_FILE = "mailbox.obj";
 
 	// Queue for queueing messages
 	Queue<String> msgQueue = new LinkedList<>();
 
 	// HashMap for storing messages with user
-	Map<String, ArrayList<String>> msgStore = null;
+	HashMap<String, ArrayList<String>> msgStore = null;
 
 	/**
 	 * Main
@@ -145,6 +145,8 @@ public class SMTPServer implements ClientServerConstants {
 							// Encrypt message
 							String encryptedMsg = doEncrypt(fullMessage);
 
+							System.out.println("Encrypted Msg" + encryptedMsg);
+
 							// Prepare schema for encrypted msg
 							String finalMsg = EMAIL_START + encryptedMsg + EMAIL_END;
 
@@ -204,8 +206,6 @@ public class SMTPServer implements ClientServerConstants {
 
 		// Run
 		public void run() {
-			// Map will take the username as key, ArrayList as value
-
 			// Check if username exists in map first
 			if(msgStore.containsKey(username)) {
 				// Get user's current messages
@@ -236,39 +236,33 @@ public class SMTPServer implements ClientServerConstants {
 	 * Starts sserver thread and socket to listen for connections
 	 */
 	private void doStart() {
-      msgStore = new HashMap<>();
-      ArrayList<String> list = new ArrayList<>();
-      list.add("Hello there");
-      msgStore.put("bxm5989",list);
+		// Look for map object file first before starting
+		try{
+			File msgFile = new File(MSG_FILE);
+			ois = new ObjectInputStream(new FileInputStream(msgFile));
 
-      // Look for map object file first before starting
-      // try{
-//          File msgFile = new File(MSG_FILE);
-//          ois = new ObjectInputStream(new FileInputStream(msgFile));
-//
-//          // Checking if the fiel exists
-//          if(!msgFile.exists()){
-//             msgStore = new HashMap<>();
-//          }else{
-//
-//             // General object to readObject
-//             Object o = ois.readObject();
-//
-//             if(o instanceof HashMap){
-//                 msgStore = (Map)o; // cast to hashmap
-//             }
-//
-//          }// end of else
-//       }
-//       catch(FileNotFoundException fnfe){
-//          fnfe.printStackTrace();
-//       }
-//       catch(ClassNotFoundException cnfe){
-//          cnfe.printStackTrace();
-//       }
-//       catch(IOException ioe){
-//          ioe.printStackTrace();
-//       }
+			// Checking if the file exists
+			if(!msgFile.exists()) {
+				msgStore = new HashMap<>();
+			}
+			else{
+				// General object to readObject
+				Object o = ois.readObject();
+
+				if(o instanceof HashMap) {
+					msgStore = (HashMap)o; // cast to hashmap
+				}
+			}// end of else
+		}
+		catch(FileNotFoundException fnfe){
+			fnfe.printStackTrace();
+		}
+		catch(ClassNotFoundException cnfe){
+			cnfe.printStackTrace();
+		}
+		catch(IOException ioe){
+			ioe.printStackTrace();
+		}
 
 		// Starts ServerStart thread
 		new ServerStart().start();
@@ -278,20 +272,12 @@ public class SMTPServer implements ClientServerConstants {
 	 * Closes server thread and socket to prevent further connections
 	 */
 	private void doStop() {
+		// Save HashMap
+		doSave();
+		
 		// Closes sSocket and streams
 		try {
-         // Make file object
-         File file = new File(MSG_FILE);
-         oos = new ObjectOutputStream(new FileOutputStream(file)); // objectoutputstream
-
-         // writes the hashmap into separate msg file
-         oos.writeObject(msgStore);
-		 oos.flush();
-		 
-		 System.out.println("Saving HashMap ...");
-
-
-         // Close stream
+			// Close stream
 			sSocket.close();
 			scn.close();
 			pwt.close();
@@ -299,28 +285,27 @@ public class SMTPServer implements ClientServerConstants {
 		catch(IOException ioe) { ioe.printStackTrace(); }
 	}
 
-
 	/**
 	 * On command "RETRIEVE FROM USER", the server will look for users that have the USER combination and return all their messages
 	 */
 	private void doRetrieve(String _user) {
-         String user = _user;
+		// Get username
+		String user = _user;
 
-         // Send messages back to user
-         ArrayList<String> allMail = msgStore.get(user);
-         String mail = "";
+		// Send messages back to user
+		ArrayList<String> allMail = msgStore.get(user);
+		String mail = "";
 
-         // interate through list
-         for(String m : allMail) {
-             mail += m + "\n";
-          }
+		// interate through list
+		for(String m : allMail) {
+			mail += m + "\n";
+		}
 
-          // send Mail to user
-          pwt.println(mail);
-          pwt.flush();
+		// send Mail to user
+		pwt.println(mail);
+		System.out.println("250 - RETRIEVE FROM - OK"); 
+		pwt.flush();
 	}// end of doRetrieve
-
-
 
 	/**
 	 * Encrypts message received from client with Ceasar Cipher of Shift 13
@@ -337,4 +322,22 @@ public class SMTPServer implements ClientServerConstants {
 
 	  return result;
 	}// end of doEncrypt
+
+	/** 
+	 * Saves HashMap to userMSGS.obj file
+	 */
+	private void doSave() {
+		// Save HashMap
+		try {
+			File file = new File(MSG_FILE);
+			oos = new ObjectOutputStream(new FileOutputStream(file)); // objectoutputstream
+
+			// writes the hashmap into separate msg file
+			oos.writeObject(msgStore);
+			oos.flush();
+			System.out.println("Saving HashMap ...");
+		}
+		catch(FileNotFoundException fnfe) { fnfe.printStackTrace(); }
+		catch(IOException ioe) { ioe.printStackTrace(); }
+	}
 }
