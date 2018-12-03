@@ -56,7 +56,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	private PrintWriter pwt = null;
 
    // User File
-   public static final String USER_FILE = "Users.txt";
+   public static final String USER_FILE = "users.txt";
 
    // User Name from user input
    private String inputUserName = "";
@@ -83,7 +83,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
         Optional<String> result = dialog.showAndWait();
 
-        if (result.isPresent()) {//Just opens the main program
+        if(result.isPresent()) {//Just opens the main program
 
             // get the input username the user put
             inputUserName = result.get().trim();
@@ -238,7 +238,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          String serverResp = scn.nextLine();
 
          // response needs to contain 250
-         if(serverResp.contains("250 - HELO - OK")) {
+         if(serverResp.contains("250")) {
             // Let user know they successfully connected to the server
             Alert alert = new Alert(AlertType.INFORMATION, "Connected!");
                alert.showAndWait();
@@ -270,7 +270,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          String resp = scn.nextLine();
 
          // Check for "OK"
-         if(resp.contains("221 - QUIT - OK")) {
+         if(resp.contains("221")) {
             // Then closes the connections and streams
             socket.close();
             pwt.close();
@@ -316,61 +316,51 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       // Check for empty
       if(fromUser.length() > 0 && toUser.length() > 0 && msg.length() > 0) {
 
-         // Check if the toUser exists in file
-         if(readUsers(toUser)) {
+         // Sends Server the "MAIL FROM" command
+         pwt.println("MAIL FROM:" + fromUser);
+         pwt.flush();
 
-            // Sends Server the "MAIL FROM" command
-            pwt.println("MAIL FROM:" + fromUser);
+         // Reads the response from the server
+         String resp = scn.nextLine();
+
+         // Response from the server must be "OK"
+         if(resp.contains("250")){
+            // Sends "RCPT" to server
+            pwt.println("RCPT TO:" + toUser);
             pwt.flush();
 
-            // Reads the response from the server
-            String resp = scn.nextLine();
+            // Read response from server again
+            String resp2 = scn.nextLine();
 
-            // Response from the server must be "OK"
-            if(resp.contains("250 - MAIL FROM - OK")){
-               // Sends "RCPT" to server
-               pwt.println("RCPT TO:" + toUser);
+            // Check again that the response is "OK"
+            if(resp2.contains("250")){
+
+               // Sends "DATA" to server
+               pwt.println("DATA");
                pwt.flush();
 
-               // Read response from server again
-               String resp2 = scn.nextLine();
+               // Read resp
+               String resp3 = scn.nextLine();
 
-               // Check again that the response is "OK"
-               if(resp2.contains("250 - RCPT TO - OK")){
+               // Check resp for "OK"
+               if(resp3.contains("250")){
 
-                  // Sends "DATA" to server
-                  pwt.println("DATA");
+                  // Send msg
+                  pwt.println(msg);
                   pwt.flush();
 
                   // Read resp
-                  String resp3 = scn.nextLine();
+                  String resp4 = scn.nextLine();
 
                   // Check resp for "OK"
-                  if(resp3.contains("250 - DATA - OK")){
+                  if(resp4.contains("250")) {
+                     // Show success alert
+                     Alert alert = new Alert(AlertType.INFORMATION, "Message sent!");
 
-                     // Send msg
-                     pwt.println(msg);
-                     pwt.flush();
-
-                     // Read resp
-                     String resp4 = scn.nextLine();
-
-                     // Check resp for "OK"
-                     if(resp4.contains("250 - Message Queued - OK")) {
-                        // Show success alert
-                        Alert alert = new Alert(AlertType.INFORMATION, "Message sent!");
-
-                        alert.showAndWait();
-                     }
+                     alert.showAndWait();
                   }
                }
             }
-         }
-         // If user does not exist in file
-         else {
-            // Show alert
-            Alert alert = new Alert(AlertType.ERROR, "The recipient does not exist on this server!");
-               alert.showAndWait();
          }
       }
       // If fields are not all filled out
