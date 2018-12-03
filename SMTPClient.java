@@ -295,6 +295,8 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
          // Read from server the messages
          String msg = scn.nextLine();
+
+         
          taMailbox.setText(msg+"\n");
       }
       catch(NullPointerException npe){

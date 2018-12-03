@@ -208,6 +208,8 @@ public class SMTPServer implements ClientServerConstants {
 		public void run() {
 			// Check if username exists in map first
 			if(msgStore.containsKey(username)) {
+				System.out.println("User mailbox found. Adding messages...");
+
 				// Get user's current messages
 				ArrayList<String> userMessages =  msgStore.get(username);
 
@@ -219,14 +221,19 @@ public class SMTPServer implements ClientServerConstants {
 			}
 			// If username does not exist
 			else {
-				// Create Arraylist
-				ArrayList<String> allMessages = new ArrayList<>();
+				System.out.println("User mailbox not created. Creating mailbox...");
 
-				// Add to allMesssages
-				allMessages.add(message);
+				// Create Arraylist
+				ArrayList<String> mailArr = new ArrayList<>();
+
+				// Add to mailArr
+				mailArr.add(message);
 
 				// Add to map
-				msgStore.put(username, allMessages);
+				msgStore.put(username, mailArr);
+
+				// Save HashMap
+				doSave(); 
 			}
 		}
 	}
@@ -241,28 +248,27 @@ public class SMTPServer implements ClientServerConstants {
 			File msgFile = new File(MSG_FILE);
 			ois = new ObjectInputStream(new FileInputStream(msgFile));
 
-			// Checking if the file exists
-			if(!msgFile.exists()) {
-				msgStore = new HashMap<>();
-			}
-			else{
-				// General object to readObject
-				Object o = ois.readObject();
+			Object o = ois.readObject();
 
-				if(o instanceof HashMap) {
-					msgStore = (HashMap)o; // cast to hashmap
+			if(o instanceof HashMap) {
+				msgStore = (HashMap)o; // cast to hashmap
+
+				for(String s : msgStore.keySet()) {
+					System.out.println(s);
 				}
-			}// end of else
+
+				System.out.println("HashMap found!");
+			}
 		}
 		catch(FileNotFoundException fnfe){
 			fnfe.printStackTrace();
+
+			System.out.println("Previous HashMap not found...");
+			System.out.println("Creating new HashMap...");
+			msgStore = new HashMap<>();
 		}
-		catch(ClassNotFoundException cnfe){
-			cnfe.printStackTrace();
-		}
-		catch(IOException ioe){
-			ioe.printStackTrace();
-		}
+		catch(ClassNotFoundException cnfe) { cnfe.printStackTrace();}
+		catch(IOException ioe){ ioe.printStackTrace(); }
 
 		// Starts ServerStart thread
 		new ServerStart().start();
@@ -292,19 +298,28 @@ public class SMTPServer implements ClientServerConstants {
 		// Get username
 		String user = _user;
 
-		// Send messages back to user
-		ArrayList<String> allMail = msgStore.get(user);
-		String mail = "";
-
-		// interate through list
-		for(String m : allMail) {
-			mail += m + "\n";
+		// Check if msgStore contains user
+		if(msgStore.containsKey(user)) {
+			ArrayList<String> allMail = msgStore.get(user);
+			String mail = "";
+	
+			// Interate through list
+			for(String m : allMail) {
+				mail += m + "\n";
+			}
+	
+			// Send Mail to user
+			pwt.println(mail);
+			System.out.println("250 - RETRIEVE FROM - OK"); 
+			pwt.flush();
+		}
+		else {
+			// Send error
+			pwt.println("221 - RETRIEVE FROM - FAIL");
+			System.out.println("221 - RETRIEVE FROM - FAIL"); 
+			pwt.flush();
 		}
 
-		// send Mail to user
-		pwt.println(mail);
-		System.out.println("250 - RETRIEVE FROM - OK"); 
-		pwt.flush();
 	}// end of doRetrieve
 
 	/**
