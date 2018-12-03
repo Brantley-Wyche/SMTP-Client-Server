@@ -326,11 +326,19 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          pwt.println("RETRIEVE FROM:"+ tfFrom.getText());
          pwt.flush();
 
-         // Read from server the messages
-         String msg = scn.nextLine();
-
+         // Read from server 
+         String resp = scn.nextLine();
          
-         taMailbox.setText(msg+"\n");
+         // Check resp 
+         if(resp.contains("221")) {
+            // Show Alert
+            Alert alert = new Alert(AlertType.ERROR, "221 - RETRIEVE FROM - FAIL");
+               alert.showAndWait();
+         }
+         // The resp is the user's mailbox
+         else {   
+            taMailbox.setText(resp+"\n");
+         }
       }
       catch(NullPointerException npe){
          npe.printStackTrace();
