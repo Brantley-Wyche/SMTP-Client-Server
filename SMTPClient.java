@@ -243,7 +243,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          String serverResp = scn.nextLine();
 
          // response needs to contain 250
-         if(serverResp.equals("250 - HELO - OK")) {
+         if(serverResp.contains("250 - HELO - OK")) {
             // Let user know they successfully connected to the server
             Alert alert = new Alert(AlertType.INFORMATION, "Connected!");
                alert.showAndWait();
@@ -262,7 +262,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       }
 	}
 
-	/*
+	/*5
 	 * Sends command 'QUIT then closes connection
 	 */
 	private void doDisconnect() {
@@ -275,7 +275,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          String resp = scn.nextLine();
 
          // Check for "OK"
-         if(resp.equals("221 - QUIT - OK")) {
+         if(resp.contains("221 - QUIT - OK")) {
             // Then closes the connections and streams
             socket.close();
             pwt.close();
@@ -293,9 +293,20 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	 * Sends command 'RETRIEVE FROM (USERNAME)' then logs all of the messages for the user
 	 */
 	private void doRetrieve() {
-		// Send command
-        pwt.println("RETRIEVE FROM "); /* Still need the username. Need the userlist */
-        pwt.flush();
+      try{
+   		// Send command
+           pwt.println("RETRIEVE FROM:"+ tfFrom.getText()); /* Still need the username. Need the userlist */
+           pwt.flush();
+           
+           // Read from server the messages
+           String msg = scn.nextLine();
+           taMailbox.setText(msg+"\n");
+           
+        }
+        catch(NullPointerException npe){
+            npe.printStackTrace();
+        }
+        
 	}
 
 	/**
@@ -323,7 +334,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
             String resp = scn.nextLine();
 
             // Response from the server must be "OK"
-            if(resp.equals("250 - MAIL FROM - OK")){
+            if(resp.contains("250 - MAIL FROM - OK")){
                // Sends "RCPT" to server
                pwt.println("RCPT TO:" + toUser);
                pwt.flush();
@@ -332,7 +343,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
                String resp2 = scn.nextLine();
 
                // Check again that the response is "OK"
-               if(resp2.equals("250 - RCPT TO - OK")){
+               if(resp2.contains("250 - RCPT TO - OK")){
 
                   // Sends "DATA" to server
                   pwt.println("DATA");
@@ -342,7 +353,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
                   String resp3 = scn.nextLine();
 
                   // Check resp for "OK"
-                  if(resp3.equals("250 - DATA - OK")){
+                  if(resp3.contains("250 - DATA - OK")){
 
                      // Send msg
                      pwt.println(msg);
@@ -352,7 +363,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
                      String resp4 = scn.nextLine();
 
                      // Check resp for "OK"
-                     if(resp4.equals("250 - Message Queued - OK")) {
+                     if(resp4.contains("250 - Message Queued - OK")) {
                         // Show success alert
                         Alert alert = new Alert(AlertType.INFORMATION, "Message sent!");
 
@@ -396,7 +407,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
          // Cycle through all users in the list
          for(int i = 0; i < userList.size(); i++){
-            if(user.equals(userList.get(i))){
+            if(user.contains(userList.get(i))){
                // if user is found to exist
                return true;
             }// end of for
