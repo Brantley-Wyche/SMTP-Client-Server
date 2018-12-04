@@ -17,7 +17,9 @@ import java.net.*;
 
 /**
  * SMTP Client
+ * 
  * Client for ISTE-121 final project, connects to a server and will send commands to the server to process
+ * 
  * @author Brandon Mok + Xin Liu + Brantley Wyche
  * @version 11/29/18
  */
@@ -49,11 +51,8 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
    private Button btnRetrieve = new Button("Retrieve");
 
 	// Sockets
-	private Socket socket = null;
-
-   // Host String (IP)
-   private String host = "localhost";
-
+   private Socket socket = null;
+   
 	// I/O
 	private Scanner scn = null;
 	private PrintWriter pwt = null;
@@ -61,8 +60,9 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
    // User File
    public static final String USER_FILE = "users.txt";
 
-   // User Name from user input
-   private String inputUserName = "";
+   // Prompt vars
+   private String inputUserName =  "";
+   private String ip = "";
 
    // Adds all read users into a list
    private ArrayList<String> userList = new ArrayList<String>();
@@ -77,7 +77,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	 * @param _stage
 	 */
 	public void start(Stage _stage) {
-		//Dialog called automatically after launch before main program
+		// Dialog called automatically after launch before main program
       Dialog<String> dialog = new Dialog<>();
       dialog.setTitle("Login");
       dialog.setHeaderText("Enter your Username and Server IP");
@@ -103,43 +103,39 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       dialog.getDialogPane().setContent(gp);
       
       // Request focus on the username field by default.
-      Platform.runLater(() -> username.requestFocus());
+      Platform.runLater(new Runnable() {
+         public void run() {
+            username.requestFocus();
+         }
+      });
       
-      
+      // Show dialog 
       Optional<String> result = dialog.showAndWait();
-    
       
-      
-      if (result.isPresent()) {//Just opens the main program
+      // Just opens the main program
+      if (result.isPresent()) {
 
-            // get the input username from the 'username' textfield
-            inputUserName = username.getText().trim();
-            String ip = serverIP.getText().trim();
+         // Get input values
+         inputUserName = username.getText().trim();
+         ip = serverIP.getText().trim();
+
+         // If user is allowed access
+         if(readUsers(inputUserName)){
+            // Connect
+            doConnect(ip);
+         }
+         else{
+            // Error for user not existing
+            Alert alert = new Alert(AlertType.ERROR, "User does not exist!");
+               alert.setTitle("User Error");
+               alert.setHeaderText(null);
+               alert.showAndWait();
             
-            System.out.println("THE IP : " + ip);
-   
-            // If user is allowed access
-            if(readUsers(inputUserName)){
-            
-               // Connect
-               doConnect(ip);
-               
-            }
-            else{
-            
-               // Error for user not existing
-               Alert alert = new Alert(AlertType.ERROR, "User does not exist!");
-                  alert.setTitle("User Error");
-                  alert.setHeaderText(null);
-                  alert.showAndWait();
-               
-               //Kills the program
-               System.exit(0); 
-            }
-   
+            System.exit(0); 
+         }
      }
-     else {//Kills the program
-       System.exit(0);
+     else {
+        System.exit(0);
      }
 
       stage = _stage;
@@ -230,7 +226,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
 	/**
 	 * Handles button action events
-	 * @param evt Button on clicks
 	 */
 	public void handle(ActionEvent evt) {
 		// Get button name
@@ -261,7 +256,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
          // Set fields
          tfFrom.setText(inputUserName);
-         tfServer.setText(host);
+         tfServer.setText(ip);
 
          // Send command to server
          pwt.println("HELO");
@@ -273,10 +268,10 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          // response needs to contain 250
          if(serverResp.contains("250")) {
             // Let user know they successfully connected to the server
-            Alert alert = new Alert(AlertType.INFORMATION, "Connected!");
+            Alert alert = new Alert(AlertType.INFORMATION, "Connected to IP: " + ip + " ,PORT: " + SERVER_PORT);
                alert.showAndWait();
          }// end of if
-
+         
       }
       catch(IOException ioe) {
          ioe.printStackTrace();
