@@ -23,7 +23,7 @@ import java.net.*;
  * @author Brandon Mok + Xin Liu + Brantley Wyche
  * @version 11/29/18
  */
-public class SMTPClient extends Application implements EventHandler<ActionEvent>, ClientServerConstants {
+public class SMTPClient extends Application implements EventHandler<ActionEvent>, ClientServerConstants, CaesarCipherConstants {
    // GUI
 	private Stage stage;
    private Scene scene;
@@ -244,8 +244,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
 	/**
 	 * Sends command 'HELO' to server then connects
-    * Only available when users are validated from the list of users
-	 */
+    */
 	private void doConnect(String ip) {
       // Connect to server socket
       try{
@@ -268,7 +267,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          // response needs to contain 250
          if(serverResp.contains("250")) {
             // Let user know they successfully connected to the server
-            Alert alert = new Alert(AlertType.INFORMATION, "Connected to IP: " + ip + " ,PORT: " + SERVER_PORT);
+            Alert alert = new Alert(AlertType.INFORMATION, "Connected to IP " + ip + " PORT: " + SERVER_PORT);
                alert.showAndWait();
          }// end of if
          
@@ -332,7 +331,9 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          }
          // The resp is the user's mailbox
          else {   
-            taMailbox.setText(resp+"\n");
+            String editResp1 = resp.replace(EMAIL_START, "");
+            String editResp2 = editResp1.replace(EMAIL_END, "");
+            taMailbox.appendText( doDecrypt(editResp2) + "\n\n");
          }
       }
       catch(NullPointerException npe){
@@ -341,7 +342,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	}
 
 	/**
-	 * Sends command 'MAIL FROM: <address>' then 'RCPT TO: <address>' then 'DATA' before encrypting and sending the message
+	 * Sends command 'MAIL FROM: <address>' then 'RCPT TO: <address>' then 'DATA' to server to process
 	 *
 	 * The order of commands must all be approved by the server before sending the message
 	 */
@@ -409,10 +410,8 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       }
 	}
 
-   /**
-   * readUsers
-   *
-   * @params String username
+   /** 
+   * Check if the user is in our list of authorized users
    */
    public boolean readUsers(String user) {
       // Check if user is authorized
@@ -441,5 +440,74 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
       // False, if not found
       return false;
+   }
+
+   /**
+    * Decrpts ceasar cipher by 13
+    */
+   private String doDecrypt(String msg) {
+		// Result
+		String result = "";
+
+		// Decryption based on shift, use a for loop to check each char of the String
+		for(int i=0; i<msg.length(); i++) {
+			char curr = msg.charAt(i);
+
+			// Check for spaces
+			if(curr == ' ') {
+				result += " ";
+			}
+			// Check for Upper Cased chars using ArrayList letters
+			else if(Character.isUpperCase(curr)) {
+				if(LETTERS.contains(curr)) {
+					// Get the index to be shifted
+					int shiftedIndex = LETTERS.indexOf(curr) - SHIFT;
+
+					// If the shiftedIndex is smaller than 0, we need to add on the size of the ArrayList
+					if(shiftedIndex < 0) {
+						shiftedIndex += LETTERS.size();
+					}
+					// Get the new shifted char
+					char shiftedChar = LETTERS.get(shiftedIndex);
+
+					// Add to result
+					result += Character.toString(shiftedChar);
+				}
+			}
+			// Check for Lower Cased chars for using ArrayList letters
+			else if(Character.isLowerCase(curr)) {
+				// Because letters is all capitalized letters, we need to upper case the current char
+				char upperChar = Character.toUpperCase(curr);
+
+				if(LETTERS.contains(upperChar)) {
+					// Get the index to be shifted
+					int shiftedIndex = LETTERS.indexOf(upperChar) - SHIFT;
+
+					// If the shiftedIndex is smaller than 0, we need to add on the size of the ArrayList
+					if(shiftedIndex < 0) {
+						shiftedIndex += LETTERS.size();
+					}
+
+					// Get the new shifted char
+					char shiftedChar = LETTERS.get(shiftedIndex);
+
+					// Lower case the shifted char
+					char lowerShifted = Character.toLowerCase(shiftedChar);
+
+					// Add to result
+					result += Character.toString(lowerShifted);
+				}
+			}
+			// Check for punctuations using ArrayList puncts
+			else if(PUNCTS.contains(curr)) {
+				result += Character.toString(curr);
+			}
+			// Check for numbers using ArrayList numbers
+			else if(NUMBERS.contains(curr)) {
+				result += Character.toString(curr);
+			}
+		}
+
+		return result;
    }
 }

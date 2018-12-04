@@ -4,11 +4,13 @@ import java.util.*;
 
 /**
  * SMTP Server
+ * 
  * Server for ISTE 121 final project, connects to a client, then accepts commands from client to process them accordingly
+ * 
  * @author Brandon Mok + Xin Liu + Brantley Wyche
  * @version 11/7/18
  */
-public class SMTPServer implements ClientServerConstants {
+public class SMTPServer implements ClientServerConstants, CaesarCipherConstants {
 	// Sockets
 	private ServerSocket sSocket = null;
 
@@ -145,8 +147,6 @@ public class SMTPServer implements ClientServerConstants {
 							// Encrypt message
 							String encryptedMsg = doEncrypt(fullMessage);
 
-							System.out.println("Encrypted Msg" + encryptedMsg);
-
 							// Prepare schema for encrypted msg
 							String finalMsg = EMAIL_START + encryptedMsg + EMAIL_END;
 
@@ -218,6 +218,9 @@ public class SMTPServer implements ClientServerConstants {
 
 				// Update map
 				msgStore.put(username, userMessages);
+
+				// Save HashMap
+				doSave();
 			}
 			// If username does not exist
 			else {
@@ -238,9 +241,18 @@ public class SMTPServer implements ClientServerConstants {
 		}
 	}
 
+	/**
+	 * METHODS: 
+	 * doSave(),
+	 * doStart(),
+	 * doStop(),
+	 * doRetrieve(),
+	 * doEncrypt()
+	 */
 
 	/**
 	 * Starts sserver thread and socket to listen for connections
+	 * Will check for a save file to preload HashMap with user's messages
 	 */
 	private void doStart() {
 		// Look for map object file first before starting
@@ -252,11 +264,6 @@ public class SMTPServer implements ClientServerConstants {
 
 			if(o instanceof HashMap) {
 				msgStore = (HashMap)o; // cast to hashmap
-
-				for(String s : msgStore.keySet()) {
-					System.out.println(s);
-				}
-
 				System.out.println("HashMap found!");
 			}
 		}
@@ -272,6 +279,24 @@ public class SMTPServer implements ClientServerConstants {
 
 		// Starts ServerStart thread
 		new ServerStart().start();
+	}
+
+	/** 
+	 * Saves HashMap into obj file
+	 */
+	private void doSave() {
+		// Save HashMap
+		try {
+			File file = new File(MSG_FILE);
+			oos = new ObjectOutputStream(new FileOutputStream(file)); // objectoutputstream
+
+			// writes the hashmap into separate msg file
+			oos.writeObject(msgStore);
+			oos.flush();
+			System.out.println("Saving HashMap ...");
+		}
+		catch(FileNotFoundException fnfe) { fnfe.printStackTrace(); }
+		catch(IOException ioe) { ioe.printStackTrace(); }
 	}
 
 	/**
@@ -305,11 +330,12 @@ public class SMTPServer implements ClientServerConstants {
 	
 			// Interate through list
 			for(String m : allMail) {
-				mail += m + "\n";
+				System.out.println(m);
+				mail += m;
 			}
 	
 			// Send Mail to user
-			pwt.println(mail);
+			pwt.println( mail );
 			System.out.println("250 - RETRIEVE FROM - OK"); 
 			pwt.flush();
 		}
@@ -319,40 +345,145 @@ public class SMTPServer implements ClientServerConstants {
 			System.out.println("221 - RETRIEVE FROM - FAIL"); 
 			pwt.flush();
 		}
-
 	}// end of doRetrieve
 
-	/**
-	 * Encrypts message received from client with Ceasar Cipher of Shift 13
-	 */
-	private String doEncrypt(String message) {
-      String result = "";
-
-      for(int i = 0; i < message.length(); i++){
-         int characterPos = LETTERS.indexOf(message.charAt(i));
-         int keyValue = (SHIFT + characterPos) % 26;
-         char replaceVal = LETTERS.charAt(keyValue);
-         result += replaceVal;
-	  }
-
-	  return result;
-	}// end of doEncrypt
-
 	/** 
-	 * Saves HashMap to userMSGS.obj file
+	 * Encrypt message with cipher of 13
 	 */
-	private void doSave() {
-		// Save HashMap
-		try {
-			File file = new File(MSG_FILE);
-			oos = new ObjectOutputStream(new FileOutputStream(file)); // objectoutputstream
+	private String doEncrypt(String msg) {
+		// Result 
+		String result = "";
 
-			// writes the hashmap into separate msg file
-			oos.writeObject(msgStore);
-			oos.flush();
-			System.out.println("Saving HashMap ...");
+		// Encryption based on shift, use a for loop to check each char of the string
+		for(int i=0; i<msg.length(); i++) {
+			char curr = msg.charAt(i);
+
+			// Check for spaces
+			if(curr == ' ') {
+				result += " ";
+			}
+			// Check for Upper Cased chars using ArrayList letters
+			else if(Character.isUpperCase(curr)) {
+				if(LETTERS.contains(curr)) {
+					// Get the index to be shifted
+					int shiftedIndex = LETTERS.indexOf(curr) + SHIFT;
+
+					// If the shiftedIndex is bigger than the size of the ArrayList, we need to substract the size of the ArrayList
+					if(shiftedIndex > LETTERS.size()-1) {
+						shiftedIndex -= LETTERS.size();
+					}
+
+					// Get the new shifted char
+					char shiftedChar = LETTERS.get(shiftedIndex);
+
+					// Add to result
+					result += Character.toString(shiftedChar);
+				}
+			}
+			// Check for Lower Cased chars for using ArrayList letters
+			else if(Character.isLowerCase(curr)) {
+				// Because letters is all capitalized letters, we need to upper case the current char
+				char upperChar = Character.toUpperCase(curr);
+
+				if(LETTERS.contains(upperChar)) {
+					// Get the index to be shifted
+					int shiftedIndex = LETTERS.indexOf(upperChar) + SHIFT;
+
+					// If the shiftedIndex is bigger than the size of the ArrayList, we need to substract the size of the ArrayList
+					if(shiftedIndex > LETTERS.size()-1) {
+						shiftedIndex -= LETTERS.size();
+					}
+
+					// Get the new shifted char
+					char shiftedChar = LETTERS.get(shiftedIndex);
+
+					// Lower case the shifted char
+					char lowerShifted = Character.toLowerCase(shiftedChar);
+
+					// Add to result
+					result += Character.toString(lowerShifted);
+				}
+			}
+			// Check for punctuations using Arraylist puncts
+			else if(PUNCTS.contains(curr)) {
+				result += Character.toString(curr);
+			}
+			// Check for numbers using ArrayList numbers
+			else if(NUMBERS.contains(curr)) {
+				result += Character.toString(curr);
+			}
 		}
-		catch(FileNotFoundException fnfe) { fnfe.printStackTrace(); }
-		catch(IOException ioe) { ioe.printStackTrace(); }
+
+		// Return result
+		return result;
+	}
+
+	/**
+	 * Decrypt messages
+	 */
+	private String doDecrypt(String msg) {
+		// Result
+		String result = "";
+
+		// Decryption based on shift, use a for loop to check each char of the String
+		for(int i=0; i<msg.length(); i++) {
+			char curr = msg.charAt(i);
+
+			// Check for spaces
+			if(curr == ' ') {
+				result += " ";
+			}
+			// Check for Upper Cased chars using ArrayList letters
+			else if(Character.isUpperCase(curr)) {
+				if(LETTERS.contains(curr)) {
+					// Get the index to be shifted
+					int shiftedIndex = LETTERS.indexOf(curr) - SHIFT;
+
+					// If the shiftedIndex is smaller than 0, we need to add on the size of the ArrayList
+					if(shiftedIndex < 0) {
+						shiftedIndex += LETTERS.size();
+					}
+					// Get the new shifted char
+					char shiftedChar = LETTERS.get(shiftedIndex);
+
+					// Add to result
+					result += Character.toString(shiftedChar);
+				}
+			}
+			// Check for Lower Cased chars for using ArrayList letters
+			else if(Character.isLowerCase(curr)) {
+				// Because letters is all capitalized letters, we need to upper case the current char
+				char upperChar = Character.toUpperCase(curr);
+
+				if(LETTERS.contains(upperChar)) {
+					// Get the index to be shifted
+					int shiftedIndex = LETTERS.indexOf(upperChar) - SHIFT;
+
+					// If the shiftedIndex is smaller than 0, we need to add on the size of the ArrayList
+					if(shiftedIndex < 0) {
+						shiftedIndex += LETTERS.size();
+					}
+
+					// Get the new shifted char
+					char shiftedChar = LETTERS.get(shiftedIndex);
+
+					// Lower case the shifted char
+					char lowerShifted = Character.toLowerCase(shiftedChar);
+
+					// Add to result
+					result += Character.toString(lowerShifted);
+				}
+			}
+			// Check for punctuations using ArrayList puncts
+			else if(PUNCTS.contains(curr)) {
+				result += Character.toString(curr);
+			}
+			// Check for numbers using ArrayList numbers
+			else if(NUMBERS.contains(curr)) {
+				result += Character.toString(curr);
+			}
+		}
+
+		return result;
 	}
 }
