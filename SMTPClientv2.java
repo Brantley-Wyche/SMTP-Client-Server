@@ -96,7 +96,7 @@ public class SMTPClientv2 extends Application implements EventHandler<ActionEven
       gp.setPadding(new Insets(20, 150, 10, 10));
       
       TextField username = new TextField();
-      PasswordField serverIP = new PasswordField();
+      TextField serverIP = new TextField();
       
       gp.add(new Label("Username: "), 0, 0);
       gp.add(username, 1, 0);
@@ -108,19 +108,25 @@ public class SMTPClientv2 extends Application implements EventHandler<ActionEven
       // Request focus on the username field by default.
       Platform.runLater(() -> username.requestFocus());
       
+      
       Optional<String> result = dialog.showAndWait();
+    
       
       
       if (result.isPresent()) {//Just opens the main program
 
             // get the input username from the 'username' textfield
             inputUserName = username.getText().trim();
+            String ip = serverIP.getText().trim();
+            
+            System.out.println("THE IP : " + ip);
    
             // If user is allowed access
             if(readUsers(inputUserName)){
             
                // Connect
-               doConnect();
+               doConnect(ip);
+               
             }
             else{
             
@@ -229,15 +235,13 @@ public class SMTPClientv2 extends Application implements EventHandler<ActionEven
 	 * Handles button action events
 	 * @param evt Button on clicks
 	 */
+    
 	public void handle(ActionEvent evt) {
 		// Get button name
 		Button btn = (Button)evt.getSource();
 
 		// Case
 		switch(btn.getText()) {
-			case "Connect":
-				doConnect(); // HELO
-				break;
 			case "Retrieve":
 				doRetrieve(); // RETRIEVE FROM USER+PASSWORD (needs double checking, not sure)
 				break;
@@ -254,11 +258,11 @@ public class SMTPClientv2 extends Application implements EventHandler<ActionEven
     * Only available when users are validated from the list of users
     * @return void
 	 */
-	private void doConnect() {
+	private void doConnect(String ip) {
       // Connect to server socket
       try{
 		   // Connect & open streams
-         socket = new Socket(host, PORT_NUM);
+         socket = new Socket(ip, PORT_NUM);
          scn = new Scanner(new InputStreamReader(socket.getInputStream()));
          pwt = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 

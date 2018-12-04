@@ -1,13 +1,16 @@
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.event.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.*;
+import javafx.scene.control.ButtonBar.*;
 import javafx.scene.control.TextInputDialog.*;
 import javafx.scene.layout.*;
 import javafx.scene.text.*;
 import javafx.stage.*;
 import javafx.geometry.*;
+import javafx.util.*;
 import java.util.*;
 import java.io.*;
 import java.net.*;
@@ -75,36 +78,69 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	 */
 	public void start(Stage _stage) {
 		//Dialog called automatically after launch before main program
-      TextInputDialog dialog = new TextInputDialog();
+      Dialog<String> dialog = new Dialog<>();
+      dialog.setTitle("Login");
+      dialog.setHeaderText("Enter your Username and Server IP");
+      
+      // Set the button types.
+      ButtonType loginButton = new ButtonType("Login", ButtonData.OK_DONE);
+      dialog.getDialogPane().getButtonTypes().addAll(loginButton, ButtonType.CANCEL);
+      
+      // Create the username and password labels and fields.
+      GridPane gp = new GridPane();
+      gp.setHgap(10);
+      gp.setVgap(10);
+      gp.setPadding(new Insets(20, 150, 10, 10));
+      
+      TextField username = new TextField();
+      TextField serverIP = new TextField();
+      
+      gp.add(new Label("Username: "), 0, 0);
+      gp.add(username, 1, 0);
+      gp.add(new Label("Server IP: "), 0, 1);
+      gp.add(serverIP, 1, 1);
+      
+      dialog.getDialogPane().setContent(gp);
+      
+      // Request focus on the username field by default.
+      Platform.runLater(() -> username.requestFocus());
+      
+      
+      Optional<String> result = dialog.showAndWait();
+    
+      
+      
+      if (result.isPresent()) {//Just opens the main program
 
-        dialog.setTitle("Login");
-        dialog.setHeaderText("Enter your username:");
-        dialog.setContentText("Username:");
-
-        Optional<String> result = dialog.showAndWait();
-
-        if(result.isPresent()) {//Just opens the main program
-
-            // get the input username the user put
-            inputUserName = result.get().trim();
-
+            // get the input username from the 'username' textfield
+            inputUserName = username.getText().trim();
+            String ip = serverIP.getText().trim();
+            
+            System.out.println("THE IP : " + ip);
+   
             // If user is allowed access
             if(readUsers(inputUserName)){
+            
                // Connect
-               doConnect();
+               doConnect(ip);
+               
             }
             else{
+            
                // Error for user not existing
-               Alert alert = new Alert(AlertType.ERROR, "User does not exist");
+               Alert alert = new Alert(AlertType.ERROR, "User does not exist!");
+                  alert.setTitle("User Error");
+                  alert.setHeaderText(null);
                   alert.showAndWait();
-
-               System.exit(0); // kill program
+               
+               //Kills the program
+               System.exit(0); 
             }
-
-        }
-        else {//Kills the program
-             System.exit(0);
-        }
+   
+     }
+     else {//Kills the program
+       System.exit(0);
+     }
 
       stage = _stage;
       stage.setTitle("SMTP Client");
@@ -202,9 +238,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
 		// Case
 		switch(btn.getText()) {
-			case "Connect":
-				doConnect(); 
-				break;
 			case "Retrieve":
 				doRetrieve(); 
 				break;
@@ -218,11 +251,11 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	 * Sends command 'HELO' to server then connects
     * Only available when users are validated from the list of users
 	 */
-	private void doConnect() {
+	private void doConnect(String ip) {
       // Connect to server socket
       try{
 		   // Connect & open streams
-         socket = new Socket(host, SERVER_PORT);
+         socket = new Socket(ip, SERVER_PORT);
          scn = new Scanner(new InputStreamReader(socket.getInputStream()));
          pwt = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 
