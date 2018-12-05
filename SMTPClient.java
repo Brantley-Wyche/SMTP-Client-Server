@@ -119,20 +119,20 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          inputUserName = username.getText().trim();
          ip = serverIP.getText().trim();
 
-         // If user is allowed access
-         if(readUsers(inputUserName)){
-            // Connect
+         // // If user is allowed access
+         // if(readUsers(inputUserName)){
+         //    // Connect
             doConnect(ip);
-         }
-         else{
-            // Error for user not existing
-            Alert alert = new Alert(AlertType.ERROR, "User does not exist!");
-               alert.setTitle("User Error");
-               alert.setHeaderText(null);
-               alert.showAndWait();
+         // }
+         // else{
+         //    // Error for user not existing
+         //    Alert alert = new Alert(AlertType.ERROR, "User does not exist!");
+         //       alert.setTitle("User Error");
+         //       alert.setHeaderText(null);
+         //       alert.showAndWait();
             
-            System.exit(0); 
-         }
+         //    System.exit(0); 
+         // }
      }
      else {
         System.exit(0);
@@ -400,6 +400,12 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
                   }
                }
             }
+         }
+         // On unknown resps
+         else {
+            Alert alert = new Alert(AlertType.INFORMATION, "Unknown response! Please try again.");
+
+            alert.showAndWait();
          }
       }
       // If fields are not all filled out

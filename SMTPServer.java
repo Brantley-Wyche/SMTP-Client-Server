@@ -60,7 +60,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 				// Accept connections to server
 				try {
 					cSocket = sSocket.accept();
-					System.out.println("Connection established!");
+					System.out.println("Connection established at " + cSocket.getInetAddress());
 				}
 				catch(IOException ioe) {
 					ioe.printStackTrace();
@@ -208,23 +208,23 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 		public void run() {
 			// Check if username exists in map first
 			if(msgStore.containsKey(username)) {
-				System.out.println("User mailbox found. Adding messages...");
+				System.out.println("Adding to " + username + "'s mailbox...'");
 
 				// Get user's current messages
-				ArrayList<String> userMessages =  msgStore.get(username);
+				ArrayList<String> mailArr =  msgStore.get(username);
 
 				// Add message to userMessages
-				userMessages.add(message);
+				mailArr.add(message);
 
 				// Update map
-				msgStore.put(username, userMessages);
+				msgStore.put(username, mailArr);
 
 				// Save HashMap
 				doSave();
 			}
 			// If username does not exist
 			else {
-				System.out.println("User mailbox not created. Creating mailbox...");
+				System.out.println("Creating mailbox for " + username + "...");
 
 				// Create Arraylist
 				ArrayList<String> mailArr = new ArrayList<>();
