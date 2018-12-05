@@ -13,6 +13,7 @@ import java.util.*;
 public class SMTPServer implements ClientServerConstants, CaesarCipherConstants {
 	// Sockets
 	private ServerSocket sSocket = null;
+   private Socket rSocket = null;
 
 	// I/O
 	private Scanner scn = null;
@@ -22,12 +23,23 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 	private ObjectInputStream ois = null;
 	private ObjectOutputStream oos = null;
 	public static final String MSG_FILE = "mailbox.obj";
+   
+   // Users
+   public static final String USER_FILE = "users.text";
+   private ArrayList<String> userList = new ArrayList<String>();
+   
+   private String sender = "";
+   private String userName = "";
+   private String ip = "";
+   private String message = "";
+   
+   
 
 	// Queue for queueing messages
 	Queue<String> msgQueue = new LinkedList<>();
 
 	// HashMap for storing messages with user
-	Map<String, ArrayList<String>> msgStore = null;
+// 	Map<String, ArrayList<String>> msgStore = null;
 
 	// Ips
 	String clientIp = "";
@@ -127,7 +139,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 				// MAIL FROM
 				else if(cmd.startsWith("MAIL FROM:")) {
 					// Get the sender
-					String sender = cmd.substring(10);
+					sender = cmd.substring(10);
 
 					// Send status code
 					pwt.println("250 MAIL FROM OK");
@@ -139,6 +151,12 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					if(cmd2.startsWith("RCPT TO:")) {
 						// Get the recipient
 						String recipient = cmd2.substring(8);
+                  
+                  String[] parts = recipient.split("@");
+                  
+                  userName = parts[0];
+                  ip = parts[1];
+
 
 						// Send status code
 						pwt.println("250 RCPT TO OK");
@@ -153,7 +171,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 							pwt.flush();
 
 							// Listen for message 
-							String message = scn.nextLine();
+							message = scn.nextLine();
 
 							// Add "From:" into the message
 							String fullMessage = "Mail From: " + sender + "\n" + message;
@@ -163,13 +181,38 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 							// Prepare schema for encrypted msg
 							String finalMsg = EMAIL_START + encryptedMsg + EMAIL_END;
-
-							// Add to queue
-							msgQueue.add(finalMsg);
-                    
-							// Start MailThread
-							MailThread mt = new MailThread(recipient, msgQueue.peek());
-							mt.start();
+                     
+                     
+                    // Check username exists
+                    try{
+                        Scanner scn = new Scanner(new FileInputStream(USER_FILE));  
+                        
+                        while(scn.hasNextLine()){
+                           if(userName.equals(scn.nextLine())){
+                                 if(ip.equals(String.valueOf(sSocket.getInetAddress()))){
+                                       // Add to queue
+							                  msgQueue.add(finalMsg);
+                                 
+                                       // Makes new mailthread
+                                       MailThread mt = new MailThread(userName,ip);
+                                          mt.start();
+                                 }else{
+                                 
+                                     MailThread mthread = new MailThread(userName,ip);
+                                          mthread.start();
+                                 }
+                           }else{
+                              // Send message
+                              pwt.println("221");
+                              System.out.println("221");
+                              pwt.flush();
+                           }
+                        }
+                        
+                        // close scanner
+                        scn.close();
+                     }
+                     catch(IOException ioe){ ioe.printStackTrace(); }
 
 							// Send status code
 							pwt.println("250 Message Queued");
@@ -183,7 +226,10 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					String user = cmd.substring(14);
 
 					// Retrieve messages for this user
-					doRetrieve(user);
+				//	doRetrieve(user);
+               
+               
+               
 				}
 				else if(cmd.equals("QUIT")) {
 					// Send response;
@@ -195,61 +241,8 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 		}
 	}
 
-	/**
-	 * MailThread
-	 *
-	 * Thread that will read from the queue and store the message with its corresponding user in a file
-	 *
-	 * There will a list of users authorized to recieve messages on this server.
-	 */
-	class MailThread extends Thread {
-		// Attributes
-		String username = "";
-		String message = "";
-
-		// Constructor
-		public MailThread(String _username, String _message) {
-			this.username = _username;
-			this.message = _message;
-		}
-
-		// Run
-		public void run() {
-			// Check if username exists in map first
-			if(msgStore.containsKey(username)) {
-				System.out.println("Adding to " + username + "'s mailbox...");
-
-				// Get user's current messages
-				ArrayList<String> mailArr =  msgStore.get(username);
-
-				// Add message to userMessages
-				mailArr.add(message);
-
-				// Update map
-				msgStore.put(username, mailArr);
-
-				// Save HashMap
-				doSave();
-			}
-			// If username does not exist
-			else {
-				System.out.println("Creating mailbox for " + username + "...");
-
-				// Create Arraylist
-				ArrayList<String> mailArr = new ArrayList<>();
-
-				// Add to mailArr
-				mailArr.add(message);
-
-				// Add to map
-				msgStore.put(username, mailArr);
-
-				// Save HashMap
-				doSave(); 
-			}
-		}
-	}
-
+	
+   
 	/**
 	 * METHODS: 
 	 * doSave(),
@@ -267,26 +260,26 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 	@SuppressWarnings("unchecked") 
 	private void doStart() {
 		// Look for previous saved messages on server
-		try{
-			File msgFile = new File(MSG_FILE);
-			ois = new ObjectInputStream(new FileInputStream(msgFile));
-
-			Object o = ois.readObject();
-
-			if(o instanceof HashMap) {
-				msgStore = (Map)o; 
-				System.out.println("Mailbox found!");
-			}
-		}
-		catch(FileNotFoundException fnfe){
-			fnfe.printStackTrace();
-
-			System.out.println("Previous Mailbox not found...");
-			System.out.println("Creating new Mailbox...");
-			msgStore = new HashMap<>();
-		}
-		catch(ClassNotFoundException cnfe) { cnfe.printStackTrace();}
-		catch(IOException ioe){ ioe.printStackTrace(); }
+	// 	try{
+// 			File msgFile = new File(MSG_FILE);
+// 			ois = new ObjectInputStream(new FileInputStream(msgFile));
+// 
+// 			Object o = ois.readObject();
+// 
+// 			if(o instanceof HashMap) {
+// 				msgStore = (Map)o; 
+// 				System.out.println("Mailbox found!");
+// 			}
+// 		}
+// 		catch(FileNotFoundException fnfe){
+// 			fnfe.printStackTrace();
+// 
+// 			System.out.println("Previous Mailbox not found...");
+// 			System.out.println("Creating new Mailbox...");
+// 			msgStore = new HashMap<>();
+// 		}
+// 		catch(ClassNotFoundException cnfe) { cnfe.printStackTrace();}
+// 		catch(IOException ioe){ ioe.printStackTrace(); }
 
 		// Starts ServerStart thread
 		new ServerStart().start();
@@ -297,19 +290,19 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 	 */
 	private void doSave() {
 		// Save HashMap
-		try {
-			File file = new File(MSG_FILE);
-			oos = new ObjectOutputStream( 
-					new FileOutputStream(file)); 
-
-			// Writes HashMap into file
-			oos.writeObject(msgStore);
-			oos.flush();
-			System.out.println("Saving Mailbox ...");
-		}
-		catch(FileNotFoundException fnfe) { fnfe.printStackTrace(); System.exit(0); }
-		catch(IOException ioe) { ioe.printStackTrace(); }
-	}
+// 		try {
+// 			File file = new File(MSG_FILE);
+// 			oos = new ObjectOutputStream( 
+// 					new FileOutputStream(file)); 
+// 
+// 			// Writes HashMap into file
+// 			oos.writeObject(msgStore);
+// 			oos.flush();
+// 			System.out.println("Saving Mailbox ...");
+// 		}
+// 		catch(FileNotFoundException fnfe) { fnfe.printStackTrace(); System.exit(0); }
+// 		catch(IOException ioe) { ioe.printStackTrace(); }
+ 	}
 
 	/**
 	 * Closes server thread and socket to prevent further connections
@@ -328,36 +321,6 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 		catch(IOException ioe) { ioe.printStackTrace(); }
 	}
 
-	/**
-	 * On command "RETRIEVE FROM USER", the server will look for users that have the USER combination and return all their messages
-	 */
-	private void doRetrieve(String _user) {
-		// Get username
-		String user = _user;
-
-		// Check if msgStore contains user
-		if(msgStore.containsKey(user)) {
-			ArrayList<String> allMail = msgStore.get(user);
-			String mail = "";
-	
-			// Interate through list
-			for(String m : allMail) {
-				System.out.println(m);
-				mail += m;
-			}
-	
-			// Send Mail to user
-			pwt.println( mail );
-			System.out.println("250 - RETRIEVE FROM - OK"); 
-			pwt.flush();
-		}
-		else {
-			// Send error
-			pwt.println("221 - RETRIEVE FROM - FAIL");
-			System.out.println("221 - RETRIEVE FROM - FAIL"); 
-			pwt.flush();
-		}
-	}// end of doRetrieve
 
 	/** 
 	 * Encrypt message with cipher of 13
@@ -429,4 +392,113 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 		// Return result
 		return result;
 	}
+   
+   
+   /**
+   * mail thread
+   */
+   class MailThread extends Thread{
+      String user = "";
+      String userIP = "";
+      
+      public MailThread(String _user, String _userIP){
+         user = _user;
+         userIP = _userIP;
+      }
+      public void run(){
+      
+      }
+   }
+   
+   
+   
+   class RelayThread extends Thread{
+      String user = "";
+      String userIP = "";
+      String from = "";
+      String message = "";
+      
+      private Scanner rScan = null;
+      private PrintWriter rPwt = null;
+      
+      
+            
+      public RelayThread(String _from, String _user, String _userIP, String _message){
+         from = _from;
+         user = _user;
+         userIP = _userIP;
+         message = _message;
+      }
+      public void run(){
+            try{
+                rSocket = new Socket(userIP, SERVER_PORT);
+                rScan = new Scanner(new InputStreamReader(rSocket.getInputStream()));
+                rPwt = new PrintWriter(new OutputStreamWriter(rSocket.getOutputStream()));
+                
+                String clientIp = String.valueOf(rSocket.getInetAddress());
+                
+                // Reads response
+                String resp = rScan.nextLine();
+                
+                if(resp.contains("220")){
+                  rPwt.println("HELO " + clientIp);
+                  rPwt.flush();
+                  
+                  String resp2 = rScan.nextLine();
+                  if(resp2.contains("250")){
+                     System.out.println("Connected to " + userIP); 
+                     
+                     
+                     rPwt.println("MAIL FROM:" + user+"@"+userIP);
+                     System.out.println("MAIL FROM:" + user+"@"+userIP);
+                     rPwt.flush();
+                     
+                     
+                     String resp3 = rScan.nextLine();
+                     if(resp3.contains("250")){
+                        rPwt.println("RCPT TO:" + from);
+                        rPwt.flush();
+                        
+                        String resp4 = rScan.nextLine();
+                        if(resp4.contains("250")){
+                           rPwt.println("DATA");
+                           rPwt.flush();
+                           
+                           
+                           String resp5 = rScan.nextLine();
+                           if(resp5.contains("354")){
+                              rPwt.println(message);
+                              rPwt.flush();
+                              
+                              String resp6 = rScan.nextLine();
+                              if(resp6.contains("250")){
+                                 System.out.println("Message sent");
+                                 try{
+                                    rPwt.println("QUIT");
+                                    rPwt.flush();
+                                    
+                                    
+                                    String resp7 = rScan.nextLine();
+                                    if(resp7.contains("221")){
+                                       rSocket.close();
+                                       rScan.close();
+                                       rPwt.close();
+                                    }
+
+                                 }catch(IOException ioe){}
+                              }
+                           }
+                        }
+                     }
+                  }else{   
+                     System.out.println("221 Failed to relay to " + userIP);
+                  }
+                } 
+            }
+            catch(IOException ioe){
+               
+            }
+    
+      }
+   }
 }
