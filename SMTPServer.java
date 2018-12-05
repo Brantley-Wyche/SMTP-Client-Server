@@ -96,17 +96,28 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 				pwt = new PrintWriter(new OutputStreamWriter( cSocket.getOutputStream() ));
 			}
 			catch(IOException ioe) { ioe.printStackTrace(); }
-
+         
+         
+         // IP
+         String serverIP = String.valueOf(sSocket.getInetAddress());
+         String userIP = String.valueOf(cSocket.getInetAddress());
+         
+         
+         // 220 SENT FIRST
+         pwt.println("220 " + serverIP + " ESMTP Postfix");
+         pwt.flush();
+         
+         
 			// Listen for commands
 			while(scn.hasNextLine()) {
 				// Get command
 				String cmd = scn.nextLine();
 
 				// HELO
-				if(cmd.equals("HELO")) {
+				if(cmd.contains("HELO")) {
 					// Send status code
-					pwt.println("250 - HELO - OK");
-					System.out.println("250 - HELO - OK");
+               pwt.println("250 Hello " + userIP + ", glad to meet you");
+               System.out.println("250 Hello " + userIP + ", glad to meet you");
 					pwt.flush();
 				}
 				// MAIL FROM
@@ -115,9 +126,10 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					String username = cmd.substring(10);
 
 					// Send status code
-					pwt.println("250 - MAIL FROM - OK");
-					System.out.println("250 - MAIL FROM - OK");
+					pwt.println("250 OK");
+					System.out.println("250 OK");
 					pwt.flush();
+
 
 					// RCPT TO
 					String cmd2 = scn.nextLine();
@@ -126,19 +138,22 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 						String username2 = cmd2.substring(8);
 
 						// Send status code
-						pwt.println("250 - RCPT TO - OK");
-						System.out.println("250 - RCPT TO - OK");
+						pwt.println("250 OK");
+						System.out.println("250 OK");
 						pwt.flush();
 
 						// DATA
 						String cmd3 = scn.nextLine();
 						if(cmd3.equals("DATA")) {
 							// Send status code
-							pwt.println("250 - DATA - OK");
-							System.out.println("250 - DATA - OK");
+// 							pwt.println("250 - DATA - OK");
+// 							System.out.println("250 - DATA - OK");
+                     pwt.println("354 End data with <CR><LF>.<CR><LF>");
 							pwt.flush();
 
-							// The client will send the message next
+
+							// The client will SEND the message next
+                     // Reading the email message 
 							String message = scn.nextLine();
 
 							// Add From: into the message
@@ -152,15 +167,24 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 							// Add to queue
 							msgQueue.add(finalMsg);
+                     
+                     
+                     
+                     // Send Command
+                     // Read message already
+                     pwt.println("250 OK: queued as ");
+                     pwt.flush();
+
+
 
 							// Start MailThread
 							MailThread mt = new MailThread(username2, msgQueue.peek());
 							mt.start();
 
-							// Send status code
-							pwt.println("250 - Message Queued - OK");
-							System.out.println("250 - Message Queued - OK");
-							pwt.flush();
+// 							// Send status code
+// 							pwt.println("250 - Message Queued - OK");
+// 							System.out.println("250 - Message Queued - OK");
+// 							pwt.flush();
 						}
 					}
 				}
@@ -173,14 +197,12 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 				}
 				else if(cmd.equals("QUIT")) {
 					// Send response;
-					pwt.println("221 - QUIT - OK"); 
+					pwt.println("221 Bye"); 
+               System.out.println("Connection closed"); // for server side to know
 					pwt.flush();
-
-					// Stop streams, write HashMap
-					doStop();
-
-					// Kill program
-					System.exit(0);
+ 
+// 					// Stop streams, write HashMap
+// 					doStop();
 				}
 			}// end of while
 		}
