@@ -126,10 +126,9 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					String username = cmd.substring(10);
 
 					// Send status code
-					pwt.println("250 OK");
-					System.out.println("250 OK");
+					pwt.println("250 MAIL FROM OK");
+					System.out.println("250 MAIL FROM OK");
 					pwt.flush();
-
 
 					// RCPT TO
 					String cmd2 = scn.nextLine();
@@ -138,8 +137,8 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 						String username2 = cmd2.substring(8);
 
 						// Send status code
-						pwt.println("250 OK");
-						System.out.println("250 OK");
+						pwt.println("250 RCPT TO OK");
+						System.out.println("250 RCPT TO OK");
 						pwt.flush();
 
 						// DATA
