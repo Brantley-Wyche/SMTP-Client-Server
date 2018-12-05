@@ -30,7 +30,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
    private MenuBar mBar = new MenuBar();
    private VBox root = new VBox(mBar);
 
-   private Menu mOptions = new Menu("Options");
+   private Menu mOptions = new Menu("Option");
    private MenuItem miLogout = new MenuItem("Logout");
 
    // Labels
@@ -53,10 +53,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	// Sockets
    private Socket socket = null;
 
-   // Ip
-   private String serverIp = "";
-   private String clientIp = "";
-   
 	// I/O
 	private Scanner scn = null;
 	private PrintWriter pwt = null;
@@ -86,6 +82,9 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
       lblMessage.setFont(new Font("Arial", 20));
       lblMailbox.setFont(new Font("Arial", 20));
+
+      tfFrom.setPromptText("example@example.com");
+      tfTo.setPromptText("example@example.com");
 
       //Row1 - server name/IP
       FlowPane fpRow1 = new FlowPane(8,8);
@@ -161,10 +160,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 			case "Send":
 				doSend();
             break;
-         case "Encrypt":
-            break; 
-         case "Decrypt":
-            break;
 		}
 	}
 
@@ -177,9 +172,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          socket = new Socket(ip, SERVER_PORT);
          scn = new Scanner(new InputStreamReader(socket.getInputStream()));
          pwt = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
-
-         // Get our socket ip
-         clientIp = String.valueOf(socket.getInetAddress());
 
          // Listen for "220"
          String resp = scn.nextLine(); 
@@ -201,16 +193,12 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
                // Alert
                Alert alert = new Alert(AlertType.INFORMATION, "Unexpected response!");
                   alert.showAndWait();
-
-               System.exit(0);
             }
          }
          else {
             // Alert
             Alert alert = new Alert(AlertType.INFORMATION, "Unexpected response!");
                alert.showAndWait();
-
-            System.exit(0);
          }
       }
       catch(IOException ioe) {
@@ -219,9 +207,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          // Show alert
          Alert alert = new Alert(AlertType.ERROR, "Could not connect to server!");
             alert.showAndWait();
-
-         // Kill client
-         System.exit(0);
       }
    }
    
@@ -229,6 +214,8 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
     * Connects with user inputted ip address first 
     *
 	 * Sends command 'MAIL FROM: <address>' then 'RCPT TO: <address>' then 'DATA' to server to process
+    * 
+    * All addresses should follow the format: username@ip
 	 *
 	 * The order of commands must all be approved by the server before sending the message
 	 */
@@ -246,16 +233,18 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          doConnect(serverIp);
 
          // Sends Server the "MAIL FROM" command
-         pwt.println("MAIL FROM:" + "<" + fromUser + "@" + clientIp + ">");
+         pwt.println("MAIL FROM:" + fromUser);
+         System.out.println("MAIL FROM:" + "<" + fromUser + ">");
          pwt.flush();
 
          // Reads the response from the server
          String resp = scn.nextLine();
 
          // Response from the server must be "250"
-         if(resp.contains("250")){
+         if(resp.contains("250")) {
             // Sends "RCPT" to server
-            pwt.println("RCPT TO:" + "<" + toUser + "@" + serverIp + ">");
+            pwt.println("RCPT TO:" + toUser);
+            System.out.println("RCPT TO:" + "<" + toUser + ">");
             pwt.flush();
 
             // Read response from server again
@@ -303,7 +292,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       // If fields are not all filled out
       else {
          // Show alert
-         Alert alert = new Alert(AlertType.ERROR, "All fields must be filled out before sending!");
+         Alert alert = new Alert(AlertType.ERROR, "ServerIp, From, To, and Message must be filled out before sending!");
             alert.showAndWait();
       }
 	}

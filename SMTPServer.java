@@ -122,6 +122,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
          
 			// 220 SENT FIRST
 			pwt.println("220 " + serverIp + " ESMTP Postfix");
+			System.out.println("220 " + serverIp + " ESMTP Postfix");
 			pwt.flush();
          
 			// Listen for commands
