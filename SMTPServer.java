@@ -45,6 +45,15 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 	}
 
 	/**
+	 * Classes:
+	 * 
+	 * ServerStart,
+	 * ClientConnection,
+	 * MailThread, 
+	 * RelayThread
+	 */
+
+	/**
 	 * ServerStart
 	 *
 	 * Thread that will be instantiated on doStart(), this class will start a server at indicated port
@@ -61,7 +70,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 				// Assign serverIp
 				serverIp = String.valueOf(sSocket.getInetAddress());
-				System.out.println("Server started at Port " + SERVER_PORT + ", IP serverIP");
+				System.out.println("Server started at Port " + SERVER_PORT);
 			}
 			catch(IOException ioe) { ioe.printStackTrace(); }
 
@@ -174,40 +183,244 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 							// Listen for message 
 							message = scn.nextLine();
-                     
-                     msgQueue.add(message);
-                     new MailThread(userName,ip,msgQueue.peek()).start();
-                     
+							
+							// Add to queue
+							msgQueue.add(message);
 
-							// Send status code
-							pwt.println("250 Message Queued");
-							System.out.println("250 Message Queued");
-							pwt.flush();
+							// Open thread to handle message in queue
+							new MailThread(userName,ip,msgQueue.peek()).start();
 						}
 					}
 				}
 				else if(cmd.startsWith("RETRIEVE FROM:")){
 					// Get username
 					String user = cmd.substring(14);
-
-					// Retrieve messages for this user
-				//	doRetrieve(user);
-               
-               
-               
 				}
 				else if(cmd.equals("QUIT")) {
-					// Send response;
+					// Send response
 					pwt.println("221 Bye"); 
+					System.out.println("221 Bye");
 					System.out.println("Connection closed with " + clientIp); 
+					pwt.flush();
+				}
+				// If none of the commands are matched, send error
+				else {
+					// Send error
+					pwt.println("221 - Unknown command recieved");
+					System.out.println("221 - Unknown command recieved");
 					pwt.flush();
 				}
 			}// end of while
 		}
 	}
 
-	
-   
+	/**
+	 * Thread that prepares the message in the queue, then add its the to the user's mailbox file. 
+	 * 
+	 * It will check if the user is authorized on this server, and if the ip is correct. If it is not then relays to the correct server.
+	 */
+	class MailThread extends Thread {
+		String user = "";
+		String userIP = "";
+		String message = "";
+		
+		public MailThread(String _user, String _userIP, String _message){
+		   user = _user;
+		   userIP = _userIP;
+		   message = _message;
+		}
+		public void run(){
+			  // Check username exists
+			  try{
+					Scanner scn = new Scanner(new FileInputStream(USER_FILE));  
+					
+					while(scn.hasNextLine()){
+
+					   // If user is authorized on this server
+					   if(userName.equals(scn.nextLine())){
+						  
+						  // If ip matches our server ip
+						  if(ip.equals(String.valueOf(sSocket.getInetAddress()))) {
+								// Add "From:" into the message
+								String fullMessage = "Mail From: " + sender + "\n" + message;
+
+								// Encrypt message
+								String encryptedMsg = doEncrypt(fullMessage);
+
+								// Prepare schema for encrypted msg
+								String finalMsg = EMAIL_START + encryptedMsg + EMAIL_END;
+
+								// Prepare IO for mailBoxFile
+								File mailBoxFile = new File(userName+".txt");
+								mailPWT = new PrintWriter(new FileOutputStream(mailBoxFile,true)); // printwriter to read mailbox
+									  
+								// Checks if a mailbox exists for user
+								if(mailBoxFile.exists()){
+									// Write message to file
+									mailPWT.println(finalMsg);
+									mailPWT.flush();
+
+									// Send status code
+									pwt.println("250 Message Queued");
+									System.out.println("250 Message Queued");
+									pwt.flush();
+
+									// close scanner
+									scn.close();
+									mailPWT.close();
+								}
+								else{
+									// Create mailbox file
+									mailBoxFile.createNewFile();
+
+									// Write message to file
+									mailPWT.println(finalMsg);
+									mailPWT.flush();
+
+									// Send status code
+									pwt.println("250 Message Queued");
+									System.out.println("250 Message Queued");
+									pwt.flush();
+									
+									// close scanner
+									scn.close();
+									mailPWT.close();
+								 }     
+						  }
+						  // If user is not on this server
+						  else {
+							  	// Relay
+								RelayThread rThread = new RelayThread(sender, user, userIP, message);
+									  rThread.start();
+
+								// close scanner
+								scn.close();
+								mailPWT.close();
+						  }
+					   }
+					   // If the user is not authorized on this server
+					   else{
+							// Replay
+							RelayThread rThread = new RelayThread(sender, user, userIP, message);
+								rThread.start();
+
+							// close scanner
+							scn.close();
+							mailPWT.close();
+						}
+					}// end of while
+			  }
+			  catch(IOException ioe){ ioe.printStackTrace(); }   
+		}// end of run
+	 }// end of mailthread
+	 
+	 
+	 /**
+	  * Thread that takes care of relaying. It will be called when relaying is required. Opens new socket and attempts to conect to the correct server ip.
+  
+	  It will send the SMTP protocols for sending the message
+	  */
+	 class RelayThread extends Thread{
+		String user = "";
+		String userIP = "";
+		String from = "";
+		String message = "";
+		
+		private Scanner rScan = null;
+		private PrintWriter rPwt = null;
+		
+		public RelayThread(String _from, String _user, String _userIP, String _message){
+		   from = _from;
+		   user = _user;
+		   userIP = _userIP;
+		   message = _message;
+		}
+		public void run(){
+			  try{
+				  rSocket = new Socket(userIP, SERVER_PORT);
+				  rScan = new Scanner(new InputStreamReader(rSocket.getInputStream()));
+				  rPwt = new PrintWriter(new OutputStreamWriter(rSocket.getOutputStream()));
+				  
+				  // Get ip of this socket
+				  String clientIp = String.valueOf(rSocket.getInetAddress());
+				  
+				  // Reads response
+				  String resp = rScan.nextLine();
+				  
+				  // Listen for "220"
+				  if(resp.contains("220")){
+					// HELO
+					rPwt.println("HELO " + clientIp);
+					rPwt.flush();
+					
+					// Listen for "250"
+					String resp2 = rScan.nextLine();
+					if(resp2.contains("250")){
+					   System.out.println("Relay - Connected to " + userIP); 
+					   
+					   // MAIL FROM:<username@ip>
+					   rPwt.println("MAIL FROM:<" + user+"@"+userIP + ">");
+					   System.out.println("MAIL FROM:<" + user+"@"+userIP + ">");
+					   rPwt.flush();
+					   
+					   // Listen for "250"
+					   String resp3 = rScan.nextLine();
+					   if(resp3.contains("250")){
+						  
+						  // RCPT TO:<username@ip>
+						  rPwt.println("RCPT TO:" + from);
+						  rPwt.flush();
+						  
+						  // Listen to "250"
+						  String resp4 = rScan.nextLine();
+						  if(resp4.contains("250")){
+						     // DATA
+							 rPwt.println("DATA");
+							 rPwt.flush();
+							 
+							 // Listen to "354"
+							 String resp5 = rScan.nextLine();
+							 if(resp5.contains("354")){
+								// Send message
+								rPwt.println(message);
+								rPwt.flush();
+								
+								// Listen to "250"
+								String resp6 = rScan.nextLine();
+								if(resp6.contains("250")){
+								   	
+								   System.out.println("Relay - Message sent");
+								   try{
+									  // QUIT
+									  rPwt.println("QUIT");
+									  rPwt.flush();
+									  
+									  // Listen for "221"
+									  String resp7 = rScan.nextLine();
+									  if(resp7.contains("221")){
+										 // Close connections and streams
+										 rSocket.close();
+										 rScan.close();
+										 rPwt.close();
+
+										 System.out.println("Relay - Connection closed");
+									  }
+  
+								   }catch(IOException ioe){ ioe.printStackTrace(); }
+								}
+							 }
+						  }
+					   }
+					}
+				  }
+				  else {   
+					System.out.println("Relay Failed - " + userIP);
+				} 
+			  }
+			  catch(IOException ioe){ ioe.printStackTrace(); }
+		}
+	 }
+
 	/**
 	 * METHODS: 
 	 * doSave(),
@@ -294,180 +507,4 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 		// Return result
 		return result;
 	}
-   
-   
-	/**
-	 * Thread that prepares the message in the queue, then add its the to the user's mailbox file. 
-	 * 
-	 * It will check if the user is authorized on this server, and if the ip is correct. If it is not then relays to the correct server.
-	 */
-   class MailThread extends Thread{
-      String user = "";
-      String userIP = "";
-      String message = "";
-      
-      public MailThread(String _user, String _userIP, String _message){
-         user = _user;
-         userIP = _userIP;
-         message = _message;
-      }
-      public void run(){
-            // Check username exists
-            try{
-                  Scanner scn = new Scanner(new FileInputStream(USER_FILE));  
-                  
-                  
-                  while(scn.hasNextLine()){
-                     if(userName.equals(scn.nextLine())){
-                        if(ip.equals(String.valueOf(sSocket.getInetAddress()))){
-                              // Add "From:" into the message
-                           	String fullMessage = "Mail From: " + sender + "\n" + message;
-                           
-                           	// Encrypt message
-                           	String encryptedMsg = doEncrypt(fullMessage);
-                           
-                           	// Prepare schema for encrypted msg
-                           	String finalMsg = EMAIL_START + encryptedMsg + EMAIL_END;
-                                       
-                                       
-                              // TODO: create mailbox file for user
-                              File mailBoxFile = new File(userName+".txt");
-                              mailPWT = new PrintWriter(new FileOutputStream(mailBoxFile,true)); // printwriter to read mailbox
-                                    
-                                       
-                              // Checks for the user mailbox         
-                              if(mailBoxFile.exists()){
-                                    // Write message to file
-                                    mailPWT.println(message);
-                                    mailPWT.flush();
-                              }
-                              else{
-                                   // Create mailbox file
-                                   mailBoxFile.createNewFile();
-                                             
-                                    // Write message to file
-                                    mailPWT.println(message);
-                                    mailPWT.flush();
-                               }     
-                        }else{
-                              RelayThread rThread = new RelayThread(sender, user, userIP, message);
-                                    rThread.start();
-                        }
-                     }else{
-                           RelayThread rThread = new RelayThread(sender, user, userIP, message);
-                                 rThread.start();
-                                
-                              // Send message
-                              pwt.println("221");
-                              System.out.println("221");
-                              pwt.flush();
-                           }
-                  }// end of while
-                        
-                        
-                  // close scanner
-                  scn.close();
-                  mailPWT.close();
-            }
-            catch(IOException ioe){
-            
-            }              
-      }// end of run
-   }// end of mailthread
-   
-   
-   /**
-	* Thread that takes care of relaying. It will be called when relaying is required. Opens new socket and attempts to conect to the correct server ip.
-
-	It will send the SMTP protocols for sending the message
-    */
-   class RelayThread extends Thread{
-      String user = "";
-      String userIP = "";
-      String from = "";
-      String message = "";
-      
-      private Scanner rScan = null;
-      private PrintWriter rPwt = null;
-      
-      
-            
-      public RelayThread(String _from, String _user, String _userIP, String _message){
-         from = _from;
-         user = _user;
-         userIP = _userIP;
-         message = _message;
-      }
-      public void run(){
-            try{
-                rSocket = new Socket(userIP, SERVER_PORT);
-                rScan = new Scanner(new InputStreamReader(rSocket.getInputStream()));
-                rPwt = new PrintWriter(new OutputStreamWriter(rSocket.getOutputStream()));
-                
-                String clientIp = String.valueOf(rSocket.getInetAddress());
-                
-                // Reads response
-                String resp = rScan.nextLine();
-                
-                if(resp.contains("220")){
-                  rPwt.println("HELO " + clientIp);
-                  rPwt.flush();
-                  
-                  String resp2 = rScan.nextLine();
-                  if(resp2.contains("250")){
-                     System.out.println("Connected to " + userIP); 
-                     
-                     
-                     rPwt.println("MAIL FROM:" + user+"@"+userIP);
-                     System.out.println("MAIL FROM:" + user+"@"+userIP);
-                     rPwt.flush();
-                     
-                     
-                     String resp3 = rScan.nextLine();
-                     if(resp3.contains("250")){
-                        rPwt.println("RCPT TO:" + from);
-                        rPwt.flush();
-                        
-                        String resp4 = rScan.nextLine();
-                        if(resp4.contains("250")){
-                           rPwt.println("DATA");
-                           rPwt.flush();
-                           
-                           
-                           String resp5 = rScan.nextLine();
-                           if(resp5.contains("354")){
-                              rPwt.println(message);
-                              rPwt.flush();
-                              
-                              String resp6 = rScan.nextLine();
-                              if(resp6.contains("250")){
-                                 System.out.println("Message sent");
-                                 try{
-                                    rPwt.println("QUIT");
-                                    rPwt.flush();
-                                    
-                                    
-                                    String resp7 = rScan.nextLine();
-                                    if(resp7.contains("221")){
-                                       rSocket.close();
-                                       rScan.close();
-                                       rPwt.close();
-                                    }
-
-                                 }catch(IOException ioe){}
-                              }
-                           }
-                        }
-                     }
-                  }else{   
-                     System.out.println("221 Failed to relay to " + userIP);
-                  }
-                } 
-            }
-            catch(IOException ioe){
-               
-            }
-    
-      }
-   }
 }
