@@ -18,6 +18,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 	// I/O
 	private Scanner scn = null;
 	private PrintWriter pwt = null;
+   private PrintWriter mailPWT = null; // only to write messages to user file
 
 	// Users
 	public static final String USER_FILE = "users.txt";
@@ -311,50 +312,68 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
          message = _message;
       }
       public void run(){
-                    // Check username exists
-                    try{
-                        Scanner scn = new Scanner(new FileInputStream(USER_FILE));  
-                        
-                        while(scn.hasNextLine()){
-                           if(userName.equals(scn.nextLine())){
-                                 if(ip.equals(String.valueOf(sSocket.getInetAddress()))){
-                                       // Add "From:" into the message
-                           				String fullMessage = "Mail From: " + sender + "\n" + message;
+            // Check username exists
+            try{
+                  Scanner scn = new Scanner(new FileInputStream(USER_FILE));  
+                  
+                  
+                  while(scn.hasNextLine()){
+                     if(userName.equals(scn.nextLine())){
+                        if(ip.equals(String.valueOf(sSocket.getInetAddress()))){
+                              // Add "From:" into the message
+                           	String fullMessage = "Mail From: " + sender + "\n" + message;
                            
-                           				// Encrypt message
-                           				String encryptedMsg = doEncrypt(fullMessage);
+                           	// Encrypt message
+                           	String encryptedMsg = doEncrypt(fullMessage);
                            
-                           				// Prepare schema for encrypted msg
-                           				String finalMsg = EMAIL_START + encryptedMsg + EMAIL_END;
+                           	// Prepare schema for encrypted msg
+                           	String finalMsg = EMAIL_START + encryptedMsg + EMAIL_END;
                                        
                                        
-                                       // TODO: create mailbox file for user
+                              // TODO: create mailbox file for user
+                              File mailBoxFile = new File(userName+".txt");
+                              mailPWT = new PrintWriter(new FileOutputStream(mailBoxFile,true)); // printwriter to read mailbox
+                                    
                                        
-                                 }else{
-                                     RelayThread rThread = new RelayThread(sender, user, userIP, message);
-                                          rThread.start();
-                                 }
-                           }else{
-                           
-                             RelayThread rThread = new RelayThread(sender, user, userIP, message);
-                                rThread.start();
-                                
+                              // Checks for the user mailbox         
+                              if(mailBoxFile.exists()){
+                                    // Write message to file
+                                    mailPWT.println(message);
+                                    mailPWT.flush();
+                              }
+                              else{
+                                   // Create mailbox file
+                                   mailBoxFile.createNewFile();
+                                             
+                                    // Write message to file
+                                    mailPWT.println(message);
+                                    mailPWT.flush();
+                               }     
+                        }else{
+                              RelayThread rThread = new RelayThread(sender, user, userIP, message);
+                                    rThread.start();
+                        }
+                     }else{
+                           RelayThread rThread = new RelayThread(sender, user, userIP, message);
+                                 rThread.start();
                                 
                               // Send message
                               pwt.println("221");
                               System.out.println("221");
                               pwt.flush();
                            }
-                        }
+                  }// end of while
                         
-                     }
-                     catch(IOException ioe){}
                         
-                        // close scanner
-                        scn.close();
-
-      }
-   }
+                  // close scanner
+                  scn.close();
+                  mailPWT.close();
+            }
+            catch(IOException ioe){
+            
+            }              
+      }// end of run
+   }// end of mailthread
    
    
    /**
