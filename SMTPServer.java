@@ -171,47 +171,10 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 							// Listen for message 
 							message = scn.nextLine();
-
-							// Add "From:" into the message
-							String fullMessage = "Mail From: " + sender + "\n" + message;
-
-							// Encrypt message
-							String encryptedMsg = doEncrypt(fullMessage);
-
-							// Prepare schema for encrypted msg
-							String finalMsg = EMAIL_START + encryptedMsg + EMAIL_END;
                      
+                     msgQueue.add(message);
+                     new MailThread(userName,ip,msgQueue.peek()).start();
                      
-                    // Check username exists
-                    try{
-                        Scanner scn = new Scanner(new FileInputStream(USER_FILE));  
-                        
-                        while(scn.hasNextLine()){
-                           if(userName.equals(scn.nextLine())){
-                                 if(ip.equals(String.valueOf(sSocket.getInetAddress()))){
-                                       // Add to queue
-							                  msgQueue.add(finalMsg);
-                                 
-                                       // Makes new mailthread
-                                       MailThread mt = new MailThread(userName,ip);
-                                          mt.start();
-                                 }else{
-                                 
-                                     MailThread mthread = new MailThread(userName,ip);
-                                          mthread.start();
-                                 }
-                           }else{
-                              // Send message
-                              pwt.println("221");
-                              System.out.println("221");
-                              pwt.flush();
-                           }
-                        }
-                        
-                        // close scanner
-                        scn.close();
-                     }
-                     catch(IOException ioe){ ioe.printStackTrace(); }
 
 							// Send status code
 							pwt.println("250 Message Queued");
@@ -399,13 +362,56 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
    class MailThread extends Thread{
       String user = "";
       String userIP = "";
+      String message = "";
       
-      public MailThread(String _user, String _userIP){
+      public MailThread(String _user, String _userIP, String _message){
          user = _user;
          userIP = _userIP;
+         message = _message;
       }
       public void run(){
-      
+                    // Check username exists
+                    try{
+                        Scanner scn = new Scanner(new FileInputStream(USER_FILE));  
+                        
+                        while(scn.hasNextLine()){
+                           if(userName.equals(scn.nextLine())){
+                                 if(ip.equals(String.valueOf(sSocket.getInetAddress()))){
+                                       // Add "From:" into the message
+                           				String fullMessage = "Mail From: " + sender + "\n" + message;
+                           
+                           				// Encrypt message
+                           				String encryptedMsg = doEncrypt(fullMessage);
+                           
+                           				// Prepare schema for encrypted msg
+                           				String finalMsg = EMAIL_START + encryptedMsg + EMAIL_END;
+                                       
+                                       
+                                       // TODO: create mailbox file for user
+                                       
+                                 }else{
+                                     RelayThread rThread = new RelayThread(sender, user, userIP, message);
+                                          rThread.start();
+                                 }
+                           }else{
+                           
+                             RelayThread rThread = new RelayThread(sender, user, userIP, message);
+                                rThread.start();
+                                
+                                
+                              // Send message
+                              pwt.println("221");
+                              System.out.println("221");
+                              pwt.flush();
+                           }
+                        }
+                        
+                     }
+                     catch(IOException ioe){}
+                        
+                        // close scanner
+                        scn.close();
+
       }
    }
    
