@@ -33,39 +33,33 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
    private Menu mOptions = new Menu("Options");
    private MenuItem miLogout = new MenuItem("Logout");
 
-   //Labels
+   // Labels
    private Label lblMessage = new Label("Message: ");
    private Label lblMailbox = new Label("Mailbox: ");
 
-   //Textfields
+   // Textfields
    private TextField tfServer = new TextField();
    private TextField tfFrom = new TextField();
    private TextField tfTo = new TextField();
 
-   //Textareas
+   // Textareas
    private TextArea taMessage = new TextArea();
    private TextArea taMailbox = new TextArea();
 
-   //Buttons
+   // Buttons
    private Button btnSend = new Button("Send");
    private Button btnRetrieve = new Button("Retrieve");
 
 	// Sockets
    private Socket socket = null;
+
+   // Ip
+   private String ip = "";
+   private String clientIp = "";
    
 	// I/O
 	private Scanner scn = null;
 	private PrintWriter pwt = null;
-
-   // User File
-   public static final String USER_FILE = "users.txt";
-
-   // Prompt vars
-   private String inputUserName =  "";
-   private String ip = "";
-
-   // Adds all read users into a list
-   private ArrayList<String> userList = new ArrayList<String>();
 
 	// Main
 	public static void main(String[] args) {
@@ -74,70 +68,29 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
 	/**
 	 * Starts GUI
-	 * @param _stage
 	 */
 	public void start(Stage _stage) {
-		// Dialog called automatically after launch before main program
-      Dialog<String> dialog = new Dialog<>();
-      dialog.setTitle("Login");
-      dialog.setHeaderText("Enter your Username and Server IP");
-      
-      // Set the button types.
-      ButtonType loginButton = new ButtonType("Login", ButtonData.OK_DONE);
-      dialog.getDialogPane().getButtonTypes().addAll(loginButton, ButtonType.CANCEL);
-      
-      // Create the username and password labels and fields.
-      GridPane gp = new GridPane();
-      gp.setHgap(10);
-      gp.setVgap(10);
-      gp.setPadding(new Insets(20, 150, 10, 10));
-      
-      TextField username = new TextField();
-      TextField serverIP = new TextField();
-      
-      gp.add(new Label("Username: "), 0, 0);
-      gp.add(username, 1, 0);
-      gp.add(new Label("Server IP: "), 0, 1);
-      gp.add(serverIP, 1, 1);
-      
-      dialog.getDialogPane().setContent(gp);
-      
-      // Request focus on the username field by default.
-      Platform.runLater(new Runnable() {
-         public void run() {
-            username.requestFocus();
-         }
-      });
-      
-      // Show dialog 
+      // Popup Window
+      TextInputDialog dialog = new TextInputDialog();
+
+      dialog.setTitle("Connect");
+      dialog.setHeaderText("Enter the Server IP:");
+      dialog.setContentText("IP:");
+
       Optional<String> result = dialog.showAndWait();
-      
-      // Just opens the main program
-      if (result.isPresent()) {
 
-         // Get input values
-         inputUserName = username.getText().trim();
-         ip = serverIP.getText().trim();
+      if(result.isPresent()) {
+         // Get the ip
+         ip = result.get().trim();
 
-         // // If user is allowed access
-         // if(readUsers(inputUserName)){
-         //    // Connect
-            doConnect(ip);
-         // }
-         // else{
-         //    // Error for user not existing
-         //    Alert alert = new Alert(AlertType.ERROR, "User does not exist!");
-         //       alert.setTitle("User Error");
-         //       alert.setHeaderText(null);
-         //       alert.showAndWait();
-            
-         //    System.exit(0); 
-         // }
-     }
-     else {
-        System.exit(0);
-     }
+         // Connect
+         doConnect(ip);
+      }
+      else {
+         System.exit(0);
+      }
 
+      // GUI Set up
       stage = _stage;
       stage.setTitle("SMTP Client");
 
@@ -211,18 +164,11 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          }
       });
 
-      //Brings up the main program after the dialog goes away
-      revealStage();
-	}
-
-   /**
-   * Shows the stage
-   */
-   public void revealStage() {//Shows the main program
+      // Show gui
       scene = new Scene(root, 650, 650);
       stage.setScene(scene);
       stage.show();
-   }
+	}
 
 	/**
 	 * Handles button action events
@@ -238,7 +184,11 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 				break;
 			case "Send":
 				doSend();
-				break;
+            break;
+         case "Encrypt":
+            break; 
+         case "Decrypt":
+            break;
 		}
 	}
 
@@ -246,31 +196,49 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	 * Sends command 'HELO' to server then connects
     */
 	private void doConnect(String ip) {
-      // Connect to server socket
-      try{
+      try {
 		   // Connect & open streams
          socket = new Socket(ip, SERVER_PORT);
          scn = new Scanner(new InputStreamReader(socket.getInputStream()));
          pwt = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 
-         // Set fields
-         tfFrom.setText(inputUserName);
+         // Set TextField
          tfServer.setText(ip);
 
-         // Send command to server
-         pwt.println("HELO");
-         pwt.flush();
+         // Get our socket ip
+         clientIp = String.valueOf(socket.getInetAddress());
 
-         // Get response from the server
-         String serverResp = scn.nextLine();
-
-         // response needs to contain 250
-         if(serverResp.contains("250")) {
-            // Let user know they successfully connected to the server
-            Alert alert = new Alert(AlertType.INFORMATION, "Connected to IP " + ip + " PORT: " + SERVER_PORT);
-               alert.showAndWait();
-         }// end of if
+         // Listen for "220"
+         String resp = scn.nextLine(); 
          
+         if(resp.contains("220")) {
+            // Send to the Server "HELO" with ip
+            pwt.println("HELO " + clientIp);
+            pwt.flush();
+
+            // Listen for "250"
+            String resp2 = scn.nextLine();
+            
+            if(resp2.contains("250")) {
+               // Show success alert
+               Alert alert = new Alert(AlertType.INFORMATION, "Connected!");
+                  alert.showAndWait();
+            }
+            else {
+               // Alert
+               Alert alert = new Alert(AlertType.INFORMATION, "Unexpected response!");
+                  alert.showAndWait();
+
+               System.exit(0);
+            }
+         }
+         else {
+            // Alert
+            Alert alert = new Alert(AlertType.INFORMATION, "Unexpected response!");
+               alert.showAndWait();
+
+            System.exit(0);
+         }
       }
       catch(IOException ioe) {
          ioe.printStackTrace();
@@ -281,6 +249,83 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
          // Kill client
          System.exit(0);
+      }
+   }
+   
+   	/**
+	 * Sends command 'MAIL FROM: <address>' then 'RCPT TO: <address>' then 'DATA' to server to process
+	 *
+	 * The order of commands must all be approved by the server before sending the message
+	 */
+	private void doSend() {
+      // Get values
+      String fromUser = tfFrom.getText().trim();
+      String toUser = tfTo.getText().trim();
+      String msg = taMessage.getText().trim();
+
+      // Check for empty
+      if(fromUser.length() > 0 && toUser.length() > 0 && msg.length() > 0) {
+
+         // Sends Server the "MAIL FROM" command
+         pwt.println("MAIL FROM:" + "<" + fromUser + "@" + clientIp + ">");
+         pwt.flush();
+
+         // Reads the response from the server
+         String resp = scn.nextLine();
+
+         // Response from the server must be "250"
+         if(resp.contains("250")){
+            // Sends "RCPT" to server
+            pwt.println("RCPT TO:" + "<" + toUser + "@" + ip + ">");
+            pwt.flush();
+
+            // Read response from server again
+            String resp2 = scn.nextLine();
+
+            // Check again that the response is "250"
+            if(resp2.contains("250")){
+
+               // Sends "DATA" to server
+               pwt.println("DATA");
+               pwt.flush();
+
+               // Read resp
+               String resp3 = scn.nextLine();
+
+               // Check resp for "354"
+               if(resp3.contains("354")){
+
+                  // Send msg
+                  pwt.println(msg);
+                  pwt.flush();
+
+                  // Read resp
+                  String resp4 = scn.nextLine();
+
+                  // Check resp for "250"
+                  if(resp4.contains("250")) {
+                     // Show success alert
+                     Alert alert = new Alert(AlertType.INFORMATION, "Message sent!");
+                        alert.showAndWait();
+                     
+                     // Disconnect
+                     doDisconnect();
+                  }
+               }
+            }
+         }
+         // On unknown resps
+         else {
+            Alert alert = new Alert(AlertType.INFORMATION, "Unknown response! Please try again.");
+
+            alert.showAndWait();
+         }
+      }
+      // If fields are not all filled out
+      else {
+         // Show alert
+         Alert alert = new Alert(AlertType.ERROR, "All fields must be filled out before sending!");
+            alert.showAndWait();
       }
 	}
 
@@ -341,115 +386,8 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       }
 	}
 
-	/**
-	 * Sends command 'MAIL FROM: <address>' then 'RCPT TO: <address>' then 'DATA' to server to process
-	 *
-	 * The order of commands must all be approved by the server before sending the message
-	 */
-	private void doSend() {
-      // Get values
-      String fromUser = tfFrom.getText().trim();
-      String toUser = tfTo.getText().trim();
-      String msg = taMessage.getText().trim();
-
-      // Check for empty
-      if(fromUser.length() > 0 && toUser.length() > 0 && msg.length() > 0) {
-
-         // Sends Server the "MAIL FROM" command
-         pwt.println("MAIL FROM:" + fromUser);
-         pwt.flush();
-
-         // Reads the response from the server
-         String resp = scn.nextLine();
-
-         // Response from the server must be "OK"
-         if(resp.contains("250")){
-            // Sends "RCPT" to server
-            pwt.println("RCPT TO:" + toUser);
-            pwt.flush();
-
-            // Read response from server again
-            String resp2 = scn.nextLine();
-
-            // Check again that the response is "OK"
-            if(resp2.contains("250")){
-
-               // Sends "DATA" to server
-               pwt.println("DATA");
-               pwt.flush();
-
-               // Read resp
-               String resp3 = scn.nextLine();
-
-               // Check resp for "OK"
-               if(resp3.contains("250")){
-
-                  // Send msg
-                  pwt.println(msg);
-                  pwt.flush();
-
-                  // Read resp
-                  String resp4 = scn.nextLine();
-
-                  // Check resp for "OK"
-                  if(resp4.contains("250")) {
-                     // Show success alert
-                     Alert alert = new Alert(AlertType.INFORMATION, "Message sent!");
-
-                     alert.showAndWait();
-                  }
-               }
-            }
-         }
-         // On unknown resps
-         else {
-            Alert alert = new Alert(AlertType.INFORMATION, "Unknown response! Please try again.");
-
-            alert.showAndWait();
-         }
-      }
-      // If fields are not all filled out
-      else {
-         // Show alert
-         Alert alert = new Alert(AlertType.ERROR, "All fields must be filled out before sending!");
-            alert.showAndWait();
-      }
-	}
-
-   /** 
-   * Check if the user is in our list of authorized users
-   */
-   public boolean readUsers(String user) {
-      // Check if user is authorized
-      try{
-         File file = new File(USER_FILE);
-         Scanner scn = new Scanner(new FileInputStream(file));
-
-         String name = "";
-
-         // Read file with users
-         while(scn.hasNextLine()){
-            userList.add(scn.nextLine());
-         }
-
-         // Cycle through all users in the list
-         for(int i = 0; i < userList.size(); i++){
-            if(user.contains(userList.get(i))){
-               // if user is found to exist
-               return true;
-            }// end of for
-         }// end of for loop
-      }
-      catch(IOException ioe) {
-         ioe.printStackTrace();
-      }
-
-      // False, if not found
-      return false;
-   }
-
    /**
-    * Decrpts ceasar cipher by 13
+    * Decrypts ceasar cipher by 13
     */
    private String doDecrypt(String msg) {
 		// Result
@@ -512,8 +450,8 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 			else if(NUMBERS.contains(curr)) {
 				result += Character.toString(curr);
 			}
-		}
-
+      }
+   
 		return result;
    }
 }
