@@ -173,6 +173,8 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          scn = new Scanner(new InputStreamReader(socket.getInputStream()));
          pwt = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 
+         String clientIp = String.valueOf(socket.getInetAddress());
+
          // Listen for "220"
          String resp = scn.nextLine(); 
          
