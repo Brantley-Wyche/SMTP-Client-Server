@@ -13,33 +13,23 @@ import java.util.*;
 public class SMTPServer implements ClientServerConstants, CaesarCipherConstants {
 	// Sockets
 	private ServerSocket sSocket = null;
-   private Socket rSocket = null;
+	private Socket rSocket = null;
 
 	// I/O
 	private Scanner scn = null;
 	private PrintWriter pwt = null;
 
-	// Object streams
-	private ObjectInputStream ois = null;
-	private ObjectOutputStream oos = null;
-	public static final String MSG_FILE = "mailbox.obj";
-   
-   // Users
-   public static final String USER_FILE = "users.text";
-   private ArrayList<String> userList = new ArrayList<String>();
-   
-   private String sender = "";
-   private String userName = "";
-   private String ip = "";
-   private String message = "";
-   
-   
+	// Users
+	public static final String USER_FILE = "users.txt";
+
+	// Global vars
+	private String sender = "";
+	private String userName = "";
+	private String ip = "";
+	private String message = "";
 
 	// Queue for queueing messages
 	Queue<String> msgQueue = new LinkedList<>();
-
-	// HashMap for storing messages with user
-// 	Map<String, ArrayList<String>> msgStore = null;
 
 	// Ips
 	String clientIp = "";
@@ -70,7 +60,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 				// Assign serverIp
 				serverIp = String.valueOf(sSocket.getInetAddress());
-				System.out.println("Server started at " + SERVER_PORT);
+				System.out.println("Server started at Port " + SERVER_PORT + ", IP serverIP");
 			}
 			catch(IOException ioe) { ioe.printStackTrace(); }
 
@@ -119,7 +109,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 			}
 			catch(IOException ioe) { ioe.printStackTrace(); }
          
-			// 220 SENT FIRST
+			// Send "220"
 			pwt.println("220 " + serverIp + " ESMTP Postfix");
 			System.out.println("220 " + serverIp + " ESMTP Postfix");
 			pwt.flush();
@@ -141,6 +131,12 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					// Get the sender
 					sender = cmd.substring(10);
 
+					// Remove "<" and ">" if it does not exist
+					if(sender.contains("<") && sender.contains(">")) {
+						String parsedSender = sender.replace("<", "");
+						parsedSender = parsedSender.replace(">", "");
+					}
+
 					// Send status code
 					pwt.println("250 MAIL FROM OK");
 					System.out.println("250 MAIL FROM OK");
@@ -151,12 +147,17 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					if(cmd2.startsWith("RCPT TO:")) {
 						// Get the recipient
 						String recipient = cmd2.substring(8);
-                  
-                  String[] parts = recipient.split("@");
-                  
-                  userName = parts[0];
-                  ip = parts[1];
 
+						// Remove "<" and ">" if it does not exist
+						if(recipient.contains("<") && recipient.contains(">")) {
+							recipient = recipient.replace("<", "");
+							recipient = recipient.replace(">", "");
+						}
+						
+						// Parse the username for "@"
+						String[] parts = recipient.split("@");
+						userName = parts[0];
+						ip = parts[1];
 
 						// Send status code
 						pwt.println("250 RCPT TO OK");
@@ -181,7 +182,6 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 							// Prepare schema for encrypted msg
 							String finalMsg = EMAIL_START + encryptedMsg + EMAIL_END;
-                     
                      
                     // Check username exists
                     try{
@@ -253,74 +253,11 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 	 */
 
 	/**
-	 * Starts sserver thread and socket to listen for connections
-	 * 
-	 * Will check for a save file to preload HashMap with user's messages
+	 * Starts server thread and socket to listen for connections
 	 */
-	@SuppressWarnings("unchecked") 
 	private void doStart() {
-		// Look for previous saved messages on server
-	// 	try{
-// 			File msgFile = new File(MSG_FILE);
-// 			ois = new ObjectInputStream(new FileInputStream(msgFile));
-// 
-// 			Object o = ois.readObject();
-// 
-// 			if(o instanceof HashMap) {
-// 				msgStore = (Map)o; 
-// 				System.out.println("Mailbox found!");
-// 			}
-// 		}
-// 		catch(FileNotFoundException fnfe){
-// 			fnfe.printStackTrace();
-// 
-// 			System.out.println("Previous Mailbox not found...");
-// 			System.out.println("Creating new Mailbox...");
-// 			msgStore = new HashMap<>();
-// 		}
-// 		catch(ClassNotFoundException cnfe) { cnfe.printStackTrace();}
-// 		catch(IOException ioe){ ioe.printStackTrace(); }
-
-		// Starts ServerStart thread
 		new ServerStart().start();
 	}
-
-	/** 
-	 * Saves HashMap into obj file to preload for next use
-	 */
-	private void doSave() {
-		// Save HashMap
-// 		try {
-// 			File file = new File(MSG_FILE);
-// 			oos = new ObjectOutputStream( 
-// 					new FileOutputStream(file)); 
-// 
-// 			// Writes HashMap into file
-// 			oos.writeObject(msgStore);
-// 			oos.flush();
-// 			System.out.println("Saving Mailbox ...");
-// 		}
-// 		catch(FileNotFoundException fnfe) { fnfe.printStackTrace(); System.exit(0); }
-// 		catch(IOException ioe) { ioe.printStackTrace(); }
- 	}
-
-	/**
-	 * Closes server thread and socket to prevent further connections
-	 */
-	private void doStop() {
-		// Save HashMap
-		doSave();
-		
-		// Closes sSocket and streams
-		try {
-			// Close stream
-			sSocket.close();
-			scn.close();
-			pwt.close();
-		}
-		catch(IOException ioe) { ioe.printStackTrace(); }
-	}
-
 
 	/** 
 	 * Encrypt message with cipher of 13
@@ -394,9 +331,11 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 	}
    
    
-   /**
-   * mail thread
-   */
+	/**
+	 * Thread that prepares the message in the queue, then add its the to the user's mailbox file. 
+	 * 
+	 * It will check if the user is authorized on this server, and if the ip is correct. If it is not then relays to the correct server.
+	 */
    class MailThread extends Thread{
       String user = "";
       String userIP = "";
@@ -411,7 +350,11 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
    }
    
    
-   
+   /**
+	* Thread that takes care of relaying. It will be called when relaying is required. Opens new socket and attempts to conect to the correct server ip.
+
+	It will send the SMTP protocols for sending the message
+    */
    class RelayThread extends Thread{
       String user = "";
       String userIP = "";
