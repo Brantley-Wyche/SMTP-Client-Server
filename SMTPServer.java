@@ -27,7 +27,11 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 	Queue<String> msgQueue = new LinkedList<>();
 
 	// HashMap for storing messages with user
-	HashMap<String, ArrayList<String>> msgStore = null;
+	Map<String, ArrayList<String>> msgStore = null;
+
+	// Ips
+	String clientIp = "";
+	String serverIp = "";
 
 	/**
 	 * Main
@@ -40,7 +44,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 	/**
 	 * ServerStart
 	 *
-	 * Thread that will be instantiated on doStart(), this class will start a server at indicated socket and port
+	 * Thread that will be instantiated on doStart(), this class will start a server at indicated port
 	 */
 	class ServerStart extends Thread {
 		// Attributes
@@ -51,6 +55,9 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 			// Start server at SERVER_PORT
 			try {
 				sSocket = new ServerSocket(SERVER_PORT);
+
+				// Assign serverIp
+				serverIp = String.valueOf(sSocket.getInetAddress());
 				System.out.println("Server started at " + SERVER_PORT);
 			}
 			catch(IOException ioe) { ioe.printStackTrace(); }
@@ -60,7 +67,10 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 				// Accept connections to server
 				try {
 					cSocket = sSocket.accept();
-					System.out.println("Connection established at " + cSocket.getInetAddress());
+
+					// Assign clientIp
+					clientIp = String.valueOf(cSocket.getInetAddress());
+					System.out.println("Connection established with " + clientIp);
 				}
 				catch(IOException ioe) {
 					ioe.printStackTrace();
@@ -77,7 +87,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 	/**
 	 * ClientConnection
 	 *
-	 * Thread that will be instantiated while the client connects with the server socket. This class will handle handle the interaction between client and server
+	 * Thread that will be instantiated while the client connects with the server socket. This class will handle the interaction between client and server
 	 */
 	class ClientConnection extends Thread {
 		// Attributes
@@ -97,16 +107,9 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 			}
 			catch(IOException ioe) { ioe.printStackTrace(); }
          
-         
-         // IP
-         String serverIP = String.valueOf(sSocket.getInetAddress());
-         String userIP = String.valueOf(cSocket.getInetAddress());
-         
-         
-         // 220 SENT FIRST
-         pwt.println("220 " + serverIP + " ESMTP Postfix");
-         pwt.flush();
-         
+			// 220 SENT FIRST
+			pwt.println("220 " + serverIp + " ESMTP Postfix");
+			pwt.flush();
          
 			// Listen for commands
 			while(scn.hasNextLine()) {
@@ -116,14 +119,14 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 				// HELO
 				if(cmd.contains("HELO")) {
 					// Send status code
-               pwt.println("250 Hello " + userIP + ", glad to meet you");
-               System.out.println("250 Hello " + userIP + ", glad to meet you");
+					pwt.println("250 HELO - " + clientIp + " OK");
+					System.out.println("250 HELO - " + clientIp + " OK");
 					pwt.flush();
 				}
 				// MAIL FROM
 				else if(cmd.startsWith("MAIL FROM:")) {
-					// Get the username
-					String username = cmd.substring(10);
+					// Get the sender
+					String sender = cmd.substring(10);
 
 					// Send status code
 					pwt.println("250 MAIL FROM OK");
@@ -133,8 +136,8 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					// RCPT TO
 					String cmd2 = scn.nextLine();
 					if(cmd2.startsWith("RCPT TO:")) {
-						// Get the username
-						String username2 = cmd2.substring(8);
+						// Get the recipient
+						String recipient = cmd2.substring(8);
 
 						// Send status code
 						pwt.println("250 RCPT TO OK");
@@ -145,18 +148,14 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 						String cmd3 = scn.nextLine();
 						if(cmd3.equals("DATA")) {
 							// Send status code
-// 							pwt.println("250 - DATA - OK");
-// 							System.out.println("250 - DATA - OK");
-                     pwt.println("354 End data with <CR><LF>.<CR><LF>");
+							pwt.println("354 DATA OK");
 							pwt.flush();
 
-
-							// The client will SEND the message next
-                     // Reading the email message 
+							// Listen for message 
 							String message = scn.nextLine();
 
-							// Add From: into the message
-							String fullMessage = "Mail From: " + username + "\n" + message + "\n";
+							// Add "From:" into the message
+							String fullMessage = "Mail From: " + sender + "\n" + message;
 
 							// Encrypt message
 							String encryptedMsg = doEncrypt(fullMessage);
@@ -166,24 +165,15 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 							// Add to queue
 							msgQueue.add(finalMsg);
-                     
-                     
-                     
-                     // Send Command
-                     // Read message already
-                     pwt.println("250 OK: queued as ");
-                     pwt.flush();
-
-
-
+                    
 							// Start MailThread
-							MailThread mt = new MailThread(username2, msgQueue.peek());
+							MailThread mt = new MailThread(recipient, msgQueue.peek());
 							mt.start();
 
-// 							// Send status code
-// 							pwt.println("250 - Message Queued - OK");
-// 							System.out.println("250 - Message Queued - OK");
-// 							pwt.flush();
+							// Send status code
+							pwt.println("250 Message Queued");
+							System.out.println("250 Message Queued");
+							pwt.flush();
 						}
 					}
 				}
@@ -191,17 +181,14 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					// Get username
 					String user = cmd.substring(14);
 
-					// retrieve messages for this user
+					// Retrieve messages for this user
 					doRetrieve(user);
 				}
 				else if(cmd.equals("QUIT")) {
 					// Send response;
 					pwt.println("221 Bye"); 
-               System.out.println("Connection closed"); // for server side to know
+					System.out.println("Connection closed with " + clientIp); 
 					pwt.flush();
- 
-// 					// Stop streams, write HashMap
-// 					doStop();
 				}
 			}// end of while
 		}
@@ -229,7 +216,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 		public void run() {
 			// Check if username exists in map first
 			if(msgStore.containsKey(username)) {
-				System.out.println("Adding to " + username + "'s mailbox...'");
+				System.out.println("Adding to " + username + "'s mailbox...");
 
 				// Get user's current messages
 				ArrayList<String> mailArr =  msgStore.get(username);
@@ -273,10 +260,12 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 	/**
 	 * Starts sserver thread and socket to listen for connections
+	 * 
 	 * Will check for a save file to preload HashMap with user's messages
 	 */
+	@SuppressWarnings("unchecked") 
 	private void doStart() {
-		// Look for map object file first before starting
+		// Look for previous saved messages on server
 		try{
 			File msgFile = new File(MSG_FILE);
 			ois = new ObjectInputStream(new FileInputStream(msgFile));
@@ -284,15 +273,15 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 			Object o = ois.readObject();
 
 			if(o instanceof HashMap) {
-				msgStore = (HashMap)o; // cast to hashmap
-				System.out.println("HashMap found!");
+				msgStore = (Map)o; 
+				System.out.println("Mailbox found!");
 			}
 		}
 		catch(FileNotFoundException fnfe){
 			fnfe.printStackTrace();
 
-			System.out.println("Previous HashMap not found...");
-			System.out.println("Creating new HashMap...");
+			System.out.println("Previous Mailbox not found...");
+			System.out.println("Creating new Mailbox...");
 			msgStore = new HashMap<>();
 		}
 		catch(ClassNotFoundException cnfe) { cnfe.printStackTrace();}
@@ -303,20 +292,21 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 	}
 
 	/** 
-	 * Saves HashMap into obj file
+	 * Saves HashMap into obj file to preload for next use
 	 */
 	private void doSave() {
 		// Save HashMap
 		try {
 			File file = new File(MSG_FILE);
-			oos = new ObjectOutputStream(new FileOutputStream(file)); // objectoutputstream
+			oos = new ObjectOutputStream( 
+					new FileOutputStream(file)); 
 
-			// writes the hashmap into separate msg file
+			// Writes HashMap into file
 			oos.writeObject(msgStore);
 			oos.flush();
-			System.out.println("Saving HashMap ...");
+			System.out.println("Saving Mailbox ...");
 		}
-		catch(FileNotFoundException fnfe) { fnfe.printStackTrace(); }
+		catch(FileNotFoundException fnfe) { fnfe.printStackTrace(); System.exit(0); }
 		catch(IOException ioe) { ioe.printStackTrace(); }
 	}
 
@@ -436,75 +426,6 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 		}
 
 		// Return result
-		return result;
-	}
-
-	/**
-	 * Decrypt messages
-	 */
-	private String doDecrypt(String msg) {
-		// Result
-		String result = "";
-
-		// Decryption based on shift, use a for loop to check each char of the String
-		for(int i=0; i<msg.length(); i++) {
-			char curr = msg.charAt(i);
-
-			// Check for spaces
-			if(curr == ' ') {
-				result += " ";
-			}
-			// Check for Upper Cased chars using ArrayList letters
-			else if(Character.isUpperCase(curr)) {
-				if(LETTERS.contains(curr)) {
-					// Get the index to be shifted
-					int shiftedIndex = LETTERS.indexOf(curr) - SHIFT;
-
-					// If the shiftedIndex is smaller than 0, we need to add on the size of the ArrayList
-					if(shiftedIndex < 0) {
-						shiftedIndex += LETTERS.size();
-					}
-					// Get the new shifted char
-					char shiftedChar = LETTERS.get(shiftedIndex);
-
-					// Add to result
-					result += Character.toString(shiftedChar);
-				}
-			}
-			// Check for Lower Cased chars for using ArrayList letters
-			else if(Character.isLowerCase(curr)) {
-				// Because letters is all capitalized letters, we need to upper case the current char
-				char upperChar = Character.toUpperCase(curr);
-
-				if(LETTERS.contains(upperChar)) {
-					// Get the index to be shifted
-					int shiftedIndex = LETTERS.indexOf(upperChar) - SHIFT;
-
-					// If the shiftedIndex is smaller than 0, we need to add on the size of the ArrayList
-					if(shiftedIndex < 0) {
-						shiftedIndex += LETTERS.size();
-					}
-
-					// Get the new shifted char
-					char shiftedChar = LETTERS.get(shiftedIndex);
-
-					// Lower case the shifted char
-					char lowerShifted = Character.toLowerCase(shiftedChar);
-
-					// Add to result
-					result += Character.toString(lowerShifted);
-				}
-			}
-			// Check for punctuations using ArrayList puncts
-			else if(PUNCTS.contains(curr)) {
-				result += Character.toString(curr);
-			}
-			// Check for numbers using ArrayList numbers
-			else if(NUMBERS.contains(curr)) {
-				result += Character.toString(curr);
-			}
-		}
-
 		return result;
 	}
 }

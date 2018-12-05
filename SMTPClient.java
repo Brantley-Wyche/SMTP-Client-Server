@@ -54,7 +54,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
    private Socket socket = null;
 
    // Ip
-   private String ip = "";
+   private String serverIp = "";
    private String clientIp = "";
    
 	// I/O
@@ -70,26 +70,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	 * Starts GUI
 	 */
 	public void start(Stage _stage) {
-      // Popup Window
-      TextInputDialog dialog = new TextInputDialog();
-
-      dialog.setTitle("Connect");
-      dialog.setHeaderText("Enter the Server IP:");
-      dialog.setContentText("IP:");
-
-      Optional<String> result = dialog.showAndWait();
-
-      if(result.isPresent()) {
-         // Get the ip
-         ip = result.get().trim();
-
-         // Connect
-         doConnect(ip);
-      }
-      else {
-         System.exit(0);
-      }
-
       // GUI Set up
       stage = _stage;
       stage.setTitle("SMTP Client");
@@ -131,15 +111,11 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       //Hbox to space out the label and button
       HBox hbox1 = new HBox();
       hbox1.getChildren().addAll(lblMessage, btnSend);
-      hbox1.setSpacing(508);
-
       root.getChildren().addAll(hbox1, taMessage);
 
       //Hbox to space out the label and button
       HBox hbox2 = new HBox();
       hbox2.getChildren().addAll(lblMailbox, btnRetrieve);
-      hbox2.setSpacing(505);
-
       root.getChildren().addAll(hbox2, taMailbox);
 
       //Spacing everything out
@@ -165,7 +141,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       });
 
       // Show gui
-      scene = new Scene(root, 650, 650);
+      scene = new Scene(root, 1000, 650);
       stage.setScene(scene);
       stage.show();
 	}
@@ -201,9 +177,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          socket = new Socket(ip, SERVER_PORT);
          scn = new Scanner(new InputStreamReader(socket.getInputStream()));
          pwt = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
-
-         // Set TextField
-         tfServer.setText(ip);
 
          // Get our socket ip
          clientIp = String.valueOf(socket.getInetAddress());
@@ -252,7 +225,9 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       }
    }
    
-   	/**
+   /**
+    * Connects with user inputted ip address first 
+    *
 	 * Sends command 'MAIL FROM: <address>' then 'RCPT TO: <address>' then 'DATA' to server to process
 	 *
 	 * The order of commands must all be approved by the server before sending the message
@@ -262,9 +237,13 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       String fromUser = tfFrom.getText().trim();
       String toUser = tfTo.getText().trim();
       String msg = taMessage.getText().trim();
+      String serverIp = tfServer.getText().trim();
 
       // Check for empty
-      if(fromUser.length() > 0 && toUser.length() > 0 && msg.length() > 0) {
+      if(fromUser.length() > 0 && toUser.length() > 0 && msg.length() > 0 && serverIp.length() > 0) {
+
+         // Connect to server
+         doConnect(serverIp);
 
          // Sends Server the "MAIL FROM" command
          pwt.println("MAIL FROM:" + "<" + fromUser + "@" + clientIp + ">");
@@ -276,7 +255,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          // Response from the server must be "250"
          if(resp.contains("250")){
             // Sends "RCPT" to server
-            pwt.println("RCPT TO:" + "<" + toUser + "@" + ip + ">");
+            pwt.println("RCPT TO:" + "<" + toUser + "@" + serverIp + ">");
             pwt.flush();
 
             // Read response from server again
@@ -347,8 +326,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
             socket.close();
             pwt.close();
             scn.close();
-
-            System.exit(0);
          }
       }
       catch(IOException ioe){
