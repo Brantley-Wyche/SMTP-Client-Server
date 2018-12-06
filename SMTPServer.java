@@ -431,8 +431,6 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 				rPwt = new PrintWriter(new OutputStreamWriter(rSocket.getOutputStream()));
 
 				System.out.println("Relay - Starting Relay");
-				System.out.println(user);
-				System.out.println(userIP);
 
 				// Get ip of this socket
 				String clientIp = String.valueOf(rSocket.getInetAddress());
