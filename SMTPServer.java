@@ -125,7 +125,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 			pwt.flush();
 
 			// Listen for commands
-			while(scn.hasNextLine()) {
+			while (scn.hasNextLine()) {
 				// Get command
 				String cmd = scn.nextLine();
 
@@ -166,6 +166,16 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 						// Parse the username for "@"
 						String[] parts = recipient.split("@");
+						try {
+
+						}
+						catch(ArrayIndexOutOfBoundsException ae) {
+							ae.printStackTrace();
+
+							pwt.println("221 Not a valid user address!");
+							System.out.println("221 Not a valid user address!");
+							pwt.flush();
+						}
 						userName = parts[0];
 						ip = parts[1];
 
@@ -211,9 +221,9 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					String pass = parts[1];
 
 					// Check for "<" and ">" in username
-					if(username.contains("<") && username.contains(">")) {
-						username = username.replace("<", ""); 
-						username = username.replace(">","");
+					if (username.contains("<") && username.contains(">")) {
+						username = username.replace("<", "");
+						username = username.replace(">", "");
 					}
 
 					// Get mailbox
@@ -223,16 +233,16 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					boolean userAuthorized = false;
 
 					// Check if user is authorized
-					for(String u : userList) {
-						if(username.equals(u)) {
+					for (String u : userList) {
+						if (username.equals(u)) {
 							userAuthorized = true;
 						}
 					}
 
 					// Check flag
-					if(userAuthorized == true) {
+					if (userAuthorized == true) {
 						// Check if file exists
-						if(mailboxFile.exists()) {
+						if (mailboxFile.exists()) {
 							// Send "250"
 							pwt.println("250 RETRIEVE FROM OK");
 							System.out.println("250 RETRIEVE FROM OK");
@@ -248,27 +258,26 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 								String mail = "";
 
-								while(scn.hasNextLine()) {
-									mail += scn.nextLine();	
+								while (scn.hasNextLine()) {
+									mail += scn.nextLine();
 								}
 
 								pwt.println(mail);
 								pwt.flush();
 							}
 							// Mailbox does not exist
-							catch(FileNotFoundException fnfe) { 
-								fnfe.printStackTrace(); 
+							catch (FileNotFoundException fnfe) {
+								fnfe.printStackTrace();
 							}
 						}
 						// If mailbox does not exist
 						else {
 							// Create mailbox
 							pwt.println("221 RETRIEVE FROM FAILED - Mailbox empty!");
-							System.out.println("221 RETRIEVE FROM FAILED - Mailbox empty!!"); 
-							pwt.flush(); 
+							System.out.println("221 RETRIEVE FROM FAILED - Mailbox empty!!");
+							pwt.flush();
 						}
-					}
-					else {
+					} else {
 						pwt.println("221 RETRIEVE FROM FAILED - User not authorized!");
 						System.out.println("221 RETRIEVE FROM FAILED - User not authorized!");
 						pwt.flush();
@@ -285,8 +294,9 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					try {
 						scn.close();
 						pwt.close();
+					} catch (Exception e) {
+						e.printStackTrace();
 					}
-					catch(Exception e) { e.printStackTrace(); }
 				}
 				// If none of the commands are matched, send error
 				else {
@@ -496,8 +506,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 							}
 						}
 					}
-				} 
-				else {
+				} else {
 					System.out.println("Relay Failed - " + userIP);
 				}
 			} catch (IOException ioe) {
@@ -540,9 +549,8 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 			// Close stream
 			mScn.close();
-		} 
-		catch(FileNotFoundException fnfe) { 
-			fnfe.printStackTrace(); 
+		} catch (FileNotFoundException fnfe) {
+			fnfe.printStackTrace();
 		}
 	}
 
