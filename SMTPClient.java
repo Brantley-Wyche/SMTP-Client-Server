@@ -41,6 +41,8 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
    private TextField tfServer = new TextField();
    private TextField tfFrom = new TextField();
    private TextField tfTo = new TextField();
+   private TextField tfUser = new TextField();
+   private TextField tfPass = new TextField();
 
    // Textareas
    private TextArea taMessage = new TextArea();
@@ -86,6 +88,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       tfServer.setPromptText("localhost");
       tfFrom.setPromptText("example@example.com");
       tfTo.setPromptText("example@example.com");
+      tfUser.setPromptText("abc123");
 
       //Row1 - server name/IP
       FlowPane fpRow1 = new FlowPane(8,8);
@@ -113,6 +116,20 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       hbox1.getChildren().addAll(lblMessage, btnSend);
       root.getChildren().addAll(hbox1, taMessage);
 
+      //Row 4 - 'username'
+      FlowPane fpRow4 = new FlowPane(8,8);
+      fpRow4.setAlignment(Pos.CENTER);
+      tfUser.setPrefColumnCount(45);
+      fpRow4.getChildren().addAll(new Label("Username: "), tfUser); 
+      root.getChildren().add(fpRow4);
+
+      //Row 5 - 'password'
+      FlowPane fpRow5 = new FlowPane(8,8);
+      fpRow5.setAlignment(Pos.CENTER);
+      tfPass.setPrefColumnCount(45); 
+      fpRow5.getChildren().addAll(new Label("Password: "), tfPass);
+      root.getChildren().add(fpRow5);
+      
       //Hbox to space out the label and button
       HBox hbox2 = new HBox();
       hbox2.getChildren().addAll(lblMailbox, btnRetrieve);
@@ -125,6 +142,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       taMessage.setWrapText(true);
       taMessage.setPrefColumnCount(10);
       taMessage.setPrefRowCount(30);
+
       taMailbox.setWrapText(true);
       taMailbox.setPrefColumnCount(10);
       taMailbox.setPrefRowCount(30);
@@ -212,7 +230,32 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
             alert.showAndWait();
       }
    }
-   
+
+	/*
+	 * Sends command 'QUIT then closes connection
+	 */
+	private void doDisconnect() {
+      try{
+         // Sends command out first
+         pwt.println("QUIT");
+         pwt.flush();
+
+         // Get status code
+         String resp = scn.nextLine();
+
+         // Check for "OK"
+         if(resp.contains("221")) {
+            // Then closes the connections and streams
+            socket.close();
+            pwt.close();
+            scn.close();
+         }
+      }
+      catch(IOException ioe){
+         ioe.printStackTrace();
+      }
+	}
+
    /**
     * Connects with user inputted ip address first 
     *
@@ -285,11 +328,14 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
                }
             }
          }
-         // On unknown resps
+         // Error
          else {
-            Alert alert = new Alert(AlertType.INFORMATION, "Unknown response! Please try again.");
+            // Alert
+            Alert alert = new Alert(AlertType.INFORMATION, resp);
+               alert.showAndWait();
 
-            alert.showAndWait();
+            // Quit connection
+            doDisconnect();
          }
       }
       // If fields are not all filled out
@@ -298,60 +344,67 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          Alert alert = new Alert(AlertType.ERROR, "ServerIp, From, To, and Message must be filled out before sending!");
             alert.showAndWait();
       }
-	}
-
-	/*5
-	 * Sends command 'QUIT then closes connection
-	 */
-	private void doDisconnect() {
-      try{
-         // Sends command out first
-         pwt.println("QUIT");
-         pwt.flush();
-
-         // Get status code
-         String resp = scn.nextLine();
-
-         // Check for "OK"
-         if(resp.contains("221")) {
-            // Then closes the connections and streams
-            socket.close();
-            pwt.close();
-            scn.close();
-         }
-      }
-      catch(IOException ioe){
-         ioe.printStackTrace();
-      }
-	}
-
+   }
+   
 	/**
-	 * Sends command 'RETRIEVE FROM (USERNAME)' then logs all of the messages for the user
+	 * Sends command 'RETRIEVE FROM:USERNAME+PASSWORD' then logs all of the messages for the user
 	 */
 	private void doRetrieve() {
-      try{
-         // Send command
-         pwt.println("RETRIEVE FROM:"+ tfFrom.getText());
+      // Get values
+      String username = tfUser.getText().trim();
+      String password = tfPass.getText().trim();
+      String serverIp = tfServer.getText().trim();
+
+      // Check for empty
+      if(username.length() > 0 && serverIp.length() > 0) {
+         // Print 
+         taMailbox.setText(username + " 's Mailbox: \n\n");
+
+         // Connect to server
+         doConnect(serverIp);
+
+         // Send "RETRIEVE FROM" command
+         pwt.println("RETRIEVE FROM:" + "<" + username + "> password");
+         System.out.println("RETRIEVE FROM:" + "<" + username + "> password");
          pwt.flush();
 
-         // Read from server 
+         // Get resp
          String resp = scn.nextLine();
-         
-         // Check resp 
-         if(resp.contains("221")) {
-            // Show Alert
-            Alert alert = new Alert(AlertType.ERROR, "221 - RETRIEVE FROM - FAIL");
-               alert.showAndWait();
+
+         if(resp.contains("250")) {
+            // Get messages
+            String mail = scn.nextLine();
+
+            // Remove encryptions tags, then decrypt
+            String parsedMail = mail.replace(EMAIL_START, "");
+            
+            String[] allMails = parsedMail.split(EMAIL_END);
+
+            for(int i=0; i<allMails.length; i++) {
+               parsedMail = doDecrypt(allMails[i]);
+
+               // Write to taMailbox
+               taMailbox.appendText(parsedMail + "\n");
+            }
+
+            // Quit connection
+            doDisconnect();
          }
-         // The resp is the user's mailbox
-         else {   
-            String editResp1 = resp.replace(EMAIL_START, "");
-            String editResp2 = editResp1.replace(EMAIL_END, "");
-            taMailbox.appendText( doDecrypt(editResp2) + "\n\n");
+         // Error
+         else {
+            // Show error
+            Alert alert = new Alert(AlertType.INFORMATION, resp);
+               alert.showAndWait();
+
+            // Quit connection
+            doDisconnect();
          }
       }
-      catch(NullPointerException npe){
-         npe.printStackTrace();
+      // No sufficient tfs
+      else {
+         // Show alert
+         Alert alert = new Alert(AlertType.ERROR, "ServerIp and Username  must be filled out before sending!");
+            alert.showAndWait();
       }
 	}
 
