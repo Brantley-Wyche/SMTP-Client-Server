@@ -357,8 +357,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
       // Check for empty
       if(username.length() > 0 && serverIp.length() > 0) {
-         // Print 
-         taMailbox.setText(username + " 's Mailbox: \n\n");
 
          // Connect to server
          doConnect(serverIp);
@@ -372,6 +370,9 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          String resp = scn.nextLine();
 
          if(resp.contains("250")) {
+            // Print 
+            taMailbox.setText(username + " 's Mailbox: \n\n");
+
             // Get messages
             String mail = scn.nextLine();
 

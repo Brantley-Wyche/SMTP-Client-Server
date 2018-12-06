@@ -188,7 +188,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 						String cmd3 = scn.nextLine();
 						if (cmd3.equals("DATA")) {
 							// Send status code
-							pwt.println("354 DATA OK");
+							pwt.println("354 End ");
 							System.out.println("354 DATA OK");
 							pwt.flush();
 
