@@ -83,6 +83,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       lblMessage.setFont(new Font("Arial", 20));
       lblMailbox.setFont(new Font("Arial", 20));
 
+      tfServer.setPromptText("localhost");
       tfFrom.setPromptText("example@example.com");
       tfTo.setPromptText("example@example.com");
 
