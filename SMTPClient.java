@@ -269,7 +269,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       // Get values
       String fromUser = tfFrom.getText().trim();
       String toUser = tfTo.getText().trim();
-      String msg = taMessage.getText().trim();
+      String msg = taMessage.getText();
       String serverIp = tfServer.getText().trim();
 
       // Check for empty

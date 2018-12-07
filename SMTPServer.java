@@ -151,62 +151,55 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					pwt.println("250 MAIL FROM OK");
 					System.out.println("250 MAIL FROM OK");
 					pwt.flush();
+				}
+				// RCPT TO
+				else if (cmd.startsWith("RCPT TO:")) {
+					// Get the recipient
+					String recipient = cmd.substring(8);
 
-					// RCPT TO
-					String cmd2 = scn.nextLine();
-					if (cmd2.startsWith("RCPT TO:")) {
-						// Get the recipient
-						String recipient = cmd2.substring(8);
+					// Remove "<" and ">" if it does not exist
+					if (recipient.contains("<") && recipient.contains(">")) {
+						recipient = recipient.replace("<", "");
+						recipient = recipient.replace(">", "");
+					}
 
-						// Remove "<" and ">" if it does not exist
-						if (recipient.contains("<") && recipient.contains(">")) {
-							recipient = recipient.replace("<", "");
-							recipient = recipient.replace(">", "");
+					// Parse the username for "@"
+					String[] parts = recipient.split("@");
+
+					userName = parts[0];
+					ip = parts[1];
+
+					// Send status code
+					pwt.println("250 RCPT TO OK");
+					System.out.println("250 RCPT TO OK");
+					pwt.flush();
+				}
+				// DATA
+				else if (cmd.equals("DATA")) {
+					// Send status code
+					pwt.println("354 End in <CR><LR>.<CR><LR>");
+					System.out.println("354 End in <CR><LR>.<CR><LR>");
+					pwt.flush();
+
+					// Listen for message
+					while(scn.hasNextLine()) {
+						if(!scn.nextLine().equals(".")) {
+							message += scn.nextLine();
 						}
-
-						// Parse the username for "@"
-						String[] parts = recipient.split("@");
-						try {
-
-						}
-						catch(ArrayIndexOutOfBoundsException ae) {
-							ae.printStackTrace();
-
-							pwt.println("221 Not a valid user address!");
-							System.out.println("221 Not a valid user address!");
-							pwt.flush();
-						}
-						userName = parts[0];
-						ip = parts[1];
-
-						// Send status code
-						pwt.println("250 RCPT TO OK");
-						System.out.println("250 RCPT TO OK");
-						pwt.flush();
-
-						// DATA
-						String cmd3 = scn.nextLine();
-						if (cmd3.equals("DATA")) {
-							// Send status code
-							pwt.println("354 End ");
-							System.out.println("354 DATA OK");
-							pwt.flush();
-
-							// Listen for message
-							message = scn.nextLine();
-
+						else {
 							// Add to queue
 							msgQueue.add(message);
-
-							// Send status code
-							pwt.println("250 Message Queued");
-							System.out.println("250 Message Queued");
-							pwt.flush();
-
-							// Open thread to handle message in queue
-							new MailThread(userName, ip, msgQueue.peek()).start();
+							break;
 						}
 					}
+
+					// Send status code
+					pwt.println("250 Message Queued");
+					System.out.println("250 Message Queued");
+					pwt.flush();
+
+					// Open thread to handle message in queue
+					new MailThread(userName, ip, msgQueue.peek()).start();
 				}
 				// RETRIEVE FROM:username pass
 				else if (cmd.startsWith("RETRIEVE FROM:")) {
