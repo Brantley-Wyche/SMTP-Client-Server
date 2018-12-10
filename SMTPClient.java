@@ -287,6 +287,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
                // Sends "DATA" to server
                pwt.println("DATA");
+               System.out.println("DATA");
                pwt.flush();
 
                // Read resp
@@ -297,10 +298,14 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
                   // Prepare message 
                   Date date = new Date(); 
-                  String fullMessage = EMAIL_START + "\n From: " + fromUser + "\n To: " + toUser + "\n Time: " + date + "\n " + msg + EMAIL_END; 
+
+                  String fullMessage = "From: " + fromUser + "\n To: " + toUser + "\n Time: " + date + "\n " + msg;
+
+                  String encryptedMessage = doEncrypt(fullMessage);
 
                   // Send msg
-                  pwt.println(fullMessage);
+                  pwt.println(encryptedMessage);
+                  System.out.println(encryptedMessage);
                   pwt.flush();
 
                   // Read resp

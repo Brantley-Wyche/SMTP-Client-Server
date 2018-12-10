@@ -201,16 +201,8 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 							message += scn.nextLine();
 						}
 						else {
-							// Split the message by "\n"
-							String[] messages = message.split("\n");
-							String queuedMessage = "";
-
-							for(int i=0; i<messages.length; i++) {
-								queuedMessage += messages[i];  
-							}
-
 							// Add to queue
-							msgQueue.add(queuedMessage);
+							msgQueue.add(message);
 							break;
 						}
 					}
