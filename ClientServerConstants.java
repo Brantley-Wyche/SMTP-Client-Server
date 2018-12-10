@@ -1,4 +1,3 @@
-
 /**
 * ClientServerConstants
 *
@@ -7,7 +6,6 @@
 * @author Brandon Mok + Xin Liu + Brantley Wyche
 */
 public interface ClientServerConstants {
-   // Connection
    public static final int SERVER_PORT = 30000;
    
    // Email constants

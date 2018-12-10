@@ -407,6 +407,80 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          Alert alert = new Alert(AlertType.ERROR, "ServerIp and Username  must be filled out before sending!");
             alert.showAndWait();
       }
+   }
+   
+   /**
+	 * Encrypt message with cipher of 13
+	 */
+	private String doEncrypt(String msg) {
+		// Result
+		String result = "";
+
+		// Encryption based on shift, use a for loop to check each char of the string
+		for (int i = 0; i < msg.length(); i++) {
+			char curr = msg.charAt(i);
+
+			// Check for spaces
+			if (curr == ' ') {
+				result += " ";
+			}
+			// Check for Upper Cased chars using ArrayList letters
+			else if (Character.isUpperCase(curr)) {
+				if (LETTERS.contains(curr)) {
+					// Get the index to be shifted
+					int shiftedIndex = LETTERS.indexOf(curr) + SHIFT;
+
+					// If the shiftedIndex is bigger than the size of the ArrayList, we need to
+					// substract the size of the ArrayList
+					if (shiftedIndex > LETTERS.size() - 1) {
+						shiftedIndex -= LETTERS.size();
+					}
+
+					// Get the new shifted char
+					char shiftedChar = LETTERS.get(shiftedIndex);
+
+					// Add to result
+					result += Character.toString(shiftedChar);
+				}
+			}
+			// Check for Lower Cased chars for using ArrayList letters
+			else if (Character.isLowerCase(curr)) {
+				// Because letters is all capitalized letters, we need to upper case the current
+				// char
+				char upperChar = Character.toUpperCase(curr);
+
+				if (LETTERS.contains(upperChar)) {
+					// Get the index to be shifted
+					int shiftedIndex = LETTERS.indexOf(upperChar) + SHIFT;
+
+					// If the shiftedIndex is bigger than the size of the ArrayList, we need to
+					// substract the size of the ArrayList
+					if (shiftedIndex > LETTERS.size() - 1) {
+						shiftedIndex -= LETTERS.size();
+					}
+
+					// Get the new shifted char
+					char shiftedChar = LETTERS.get(shiftedIndex);
+
+					// Lower case the shifted char
+					char lowerShifted = Character.toLowerCase(shiftedChar);
+
+					// Add to result
+					result += Character.toString(lowerShifted);
+				}
+			}
+			// Check for punctuations using Arraylist puncts
+			else if (PUNCTS.contains(curr)) {
+				result += Character.toString(curr);
+			}
+			// Check for numbers using ArrayList numbers
+			else if (NUMBERS.contains(curr)) {
+				result += Character.toString(curr);
+			}
+		}
+
+		// Return result
+		return result;
 	}
 
    /**
