@@ -29,6 +29,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 	private String clientIp = ""; 
 	private String my_ip = "";
+	private String hardcoded_ip = "129.21.125.104";
 
 	// Queue for queueing messages
 	private Queue<String> msgQueue = new LinkedList<>();
@@ -70,6 +71,12 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 		
 				// Get up
 				my_ip = in.readLine();
+
+				// Fail-safe
+				if(my_ip.length() < 1) {
+					// In the event my_ip cannot be idenitified from the url, we will hardcode the ip
+					my_ip = hardcoded_ip;
+				}
 			}
 			catch(IOException ioe) { ioe.printStackTrace(); }
 
@@ -273,7 +280,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 		}
 
 		public void run() {
-			
+
 		}// end of run
 	}// end of mailthread
 
