@@ -11,6 +11,7 @@ import javafx.scene.text.*;
 import javafx.stage.*;
 import javafx.geometry.*;
 import javafx.util.*;
+
 import java.util.*;
 import java.io.*;
 import java.net.*;
@@ -29,9 +30,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
    private Scene scene;
    private MenuBar mBar = new MenuBar();
    private VBox root = new VBox(mBar);
-
-   private Menu mOptions = new Menu("Option");
-   private MenuItem miLogout = new MenuItem("Logout");
 
    // Labels
    private Label lblMessage = new Label("Message: ");
@@ -71,16 +69,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       // GUI Set up
       stage = _stage;
       stage.setTitle("SMTP Client");
-
-      // Set miLogout action
-      miLogout.setOnAction(new EventHandler<ActionEvent>() {
-         public void handle(ActionEvent evt) {
-            doDisconnect();
-         }
-      });
-
-      mBar.getMenus().addAll(mOptions);
-      mOptions.getItems().addAll(miLogout);
 
       lblMessage.setFont(new Font("Arial", 20));
       lblMailbox.setFont(new Font("Arial", 20));
@@ -151,13 +139,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       btnSend.setOnAction(this);
       btnRetrieve.setOnAction(this);
 
-      // Logout action handler
-      miLogout.setOnAction(new EventHandler<ActionEvent>(){
-         public void handle(ActionEvent event){
-               doDisconnect();
-         }
-      });
-
       // Show gui
       scene = new Scene(root, 1000, 650);
       stage.setScene(scene);
@@ -210,15 +191,17 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
                Alert alert = new Alert(AlertType.INFORMATION, "Connected!");
                   alert.showAndWait();
             }
+            // Error
             else {
                // Alert
-               Alert alert = new Alert(AlertType.INFORMATION, "Unexpected response!");
+               Alert alert = new Alert(AlertType.INFORMATION, resp2);
                   alert.showAndWait();
             }
          }
+         // Error
          else {
             // Alert
-            Alert alert = new Alert(AlertType.INFORMATION, "Unexpected response!");
+            Alert alert = new Alert(AlertType.INFORMATION, resp);
                alert.showAndWait();
          }
       }
@@ -250,6 +233,11 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
             pwt.close();
             scn.close();
          }
+         // Error
+         else {
+            Alert alert = new Alert(AlertType.ERROR, resp);
+               alert.showAndWait();
+         }
       }
       catch(IOException ioe){
          ioe.printStackTrace();
@@ -257,13 +245,11 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	}
 
    /**
-    * Connects with user inputted ip address first 
+    * Connects with user inputted ip address 
     *
 	 * Sends command 'MAIL FROM: <address>' then 'RCPT TO: <address>' then 'DATA' to server to process
     * 
     * All addresses should follow the format: username@ip
-	 *
-	 * The order of commands must all be approved by the server before sending the message
 	 */
 	private void doSend() {
       // Get values
@@ -309,8 +295,12 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
                // Check resp for "354"
                if(resp3.contains("354")){
 
+                  // Prepare message 
+                  Date date = new Date(); 
+                  String fullMessage = EMAIL_START + "\n From: " + fromUser + "\n To: " + toUser + "\n Time: " + date + "\n " + msg + EMAIL_END; 
+
                   // Send msg
-                  pwt.println(msg);
+                  pwt.println(fullMessage);
                   pwt.flush();
 
                   // Read resp
@@ -325,7 +315,34 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
                      // Disconnect
                      doDisconnect();
                   }
+                  // Error
+                  else {
+                     // Alert
+                     Alert alert = new Alert(AlertType.INFORMATION, resp);
+                     alert.showAndWait();
+
+                     // Quit connection
+                     doDisconnect();
+                  }
                }
+               // Error
+               else {
+                  // Alert
+                  Alert alert = new Alert(AlertType.INFORMATION, resp);
+                    alert.showAndWait();
+
+                  // Quit connection
+                  doDisconnect();
+               }
+            }
+            // Error
+            else {
+               // Alert
+               Alert alert = new Alert(AlertType.INFORMATION, resp);
+                 alert.showAndWait();
+
+               // Quit connection
+               doDisconnect();
             }
          }
          // Error

@@ -201,8 +201,16 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 							message += scn.nextLine();
 						}
 						else {
+							// Split the message by "\n"
+							String[] messages = message.split("\n");
+							String queuedMessage = "";
+
+							for(int i=0; i<messages.length; i++) {
+								queuedMessage += messages[i];  
+							}
+
 							// Add to queue
-							msgQueue.add(message);
+							msgQueue.add(queuedMessage);
 							break;
 						}
 					}
@@ -265,27 +273,86 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 	/**
 	 * Thread that prepares the message in the queue, then add its the to the user's mailbox file.
 	 * 
-	 * It will check if the user is authorized on this server, and if the ip is correct. If it is not then relays to the correct server.
+	 * This thread will check if the ip matches the host's public ip, and if it does not it will relay
 	 */
 	class MailThread extends Thread {
 		// Attributes
 		String user = "";
 		String userIP = "";
 		String message = "";
+		String mailbox = user + ".txt"; 
 
+		// Constructor
 		public MailThread(String _user, String _userIP, String _message) {
-			user = _user;
-			userIP = _userIP;
-			message = _message;
+			this.user = _user;
+			this.userIP = _userIP;
+			this.message = _message;
 		}
 
+		// Run
 		public void run() {
+			// Check if user's ip matches our ip
+			if(userIP.equals(my_ip) || userIP.equals(hardcoded_ip)) {
+				// User belongs to our ip, check if they have a mailbox file
+				File mailbox_file = new File(mailbox);
 
-		}// end of run
-	}// end of mailthread
+				if(mailbox_file.exists()) {
+					// Write to mailbox_file
+					try {
+						// Open I/O
+						PrintWriter mPwt = new PrintWriter(mailbox_file); 
+
+						mPwt.println(message); 
+
+						mPwt.close();
+					}
+					catch(IOException ioe) { ioe.printStackTrace(); }
+				}
+				// User does not have mailbox on our server, but matches our ip
+				else {
+					try {
+						// Open I/O
+						PrintWriter mPwt = new PrintWriter(user+".txt");
+						
+						mPwt.println(message);
+
+						mPwt.close();
+					}
+					catch(IOException ioe) { ioe.printStackTrace(); }
+				}
+			}
+			// User's ip does not match our ip
+			else {
+				// Relay to proper server
+				new RelayThread(user, userIP, message).start();
+			}
+		}
+	}
 
 	/**
-	 * METHODS: doSave(), doStart(), doStop(), doRetrieve(), doEncrypt()
+	 * Thread will open a socket connection with the user's ip and send the mail to that server
+	 */
+	class RelayThread extends Thread {
+		// Attributes
+		String user = "";
+		String userIP = "";
+		String message = "";
+
+		// Constructor
+		public RelayThread(String _user, String _userIP, String _message) {
+			this.user = _user;
+			this.userIP = _userIP;
+			this.message = _message;
+		}
+
+		// Run
+		public void run() {
+
+		}
+	}
+
+	/**
+	 * METHODS: doStart()
 	 */
 
 	/**
