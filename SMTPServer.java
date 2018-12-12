@@ -273,16 +273,19 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 							try {
 								FileInputStream fis = new FileInputStream(mailbox_file);
 								Scanner mScn = new Scanner(fis);
-								String allMail = "";
 
 								while(mScn.hasNextLine()) {
 									String line = mScn.nextLine();
-									allMail += line;
+									pwt.println(line);
+									sLog(line);
+									pwt.flush();
 								}
 
+								// sLog(allMail);
+
 								mScn.close();
-								pwt.println(allMail);
-								pwt.flush();
+								// pwt.print(allMail);
+								// pwt.flush();
 							}
 							catch(IOException ioe) { ioe.printStackTrace(); }
 						}

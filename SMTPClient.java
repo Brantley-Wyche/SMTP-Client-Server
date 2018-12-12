@@ -440,21 +440,27 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          // Check for 250
          String resp = scn.nextLine();
          if(resp.contains("250")) {
+
             // Get messages
-            String mail = scn.nextLine();
+            while(scn.hasNextLine()) {
+               String mail = scn.nextLine();
 
-            // Check mail for encrypted or plain
-            if(mail.contains(EMAIL_START) && mail.contains(EMAIL_END)) {
-               // Decrypt
-               String unencryptedString = mail.replace(EMAIL_START, "");
-               unencryptedString = unencryptedString.replace(EMAIL_END, "");
-               unencryptedString = doDecrypt(unencryptedString); 
+               // Check mail for encrypted or plain
+               if(mail.contains(EMAIL_START) && mail.contains(EMAIL_END)) {
+                  System.out.println(mail);
 
-               // Write to mailbox
-               taMailbox.appendText(unencryptedString);
-            }
-            else {
-               taMailbox.appendText(mail);
+                  // Decrypt
+                  String unencryptedString = mail.replace(EMAIL_START, "");
+                  unencryptedString = unencryptedString.replace(EMAIL_END, "");
+                  unencryptedString = doDecrypt(unencryptedString); 
+
+                  // Write to mailbox
+                  taMailbox.appendText(unencryptedString + newline);
+               }
+               else {
+                  System.out.println(mail);
+                  taMailbox.appendText(mail + newline);
+               }  
             }
             
             // Close connection when its done
