@@ -51,6 +51,10 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
    private Button btnSend = new Button("Send");
    private Button btnRetrieve = new Button("Retrieve");
 
+   // Radio Button
+   private RadioButton rbtnEncrypt = new RadioButton("Encrypt");
+   private boolean encryptFlag = false;
+
 	// Sockets
    private Socket socket = null;
 
@@ -88,6 +92,12 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       tfUser.setText("tester");
       tfPass.setText("kms");
 
+      rbtnEncrypt.setOnAction(new EventHandler<ActionEvent>() {
+         public void handle(ActionEvent evt) {
+            encryptFlag = true;
+         }
+      });
+
       //Row1 - server name/IP
       FlowPane fpRow1 = new FlowPane(8,8);
       fpRow1.setAlignment(Pos.CENTER);
@@ -115,6 +125,12 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       tfSubject.setPrefColumnCount(45);
       fpRow6.getChildren().addAll(new Label("Subject: "), tfSubject);
       root.getChildren().add(fpRow6);
+
+      //Row 7 - "Encrypt" radiobutton
+      FlowPane fpRow7 = new FlowPane(8,8);
+      fpRow7.setAlignment(Pos.CENTER);
+      fpRow7.getChildren().addAll(rbtnEncrypt);
+      root.getChildren().add(fpRow7);
 
       //Hbox to space out the label and button
       HBox hbox1 = new HBox();
@@ -322,12 +338,22 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
                      fullMessage += "From: " + fromUser + newline + "To: " + toUser + newline + "Subject: " + "(No Subject)" + newline + "Time: " + date + newline + msg;  
                   }
 
-                  String encryptedMessage = EMAIL_START + doEncrypt(fullMessage) + EMAIL_END + newline + ".";
+                  // Check for encryption flag
+                  if(encryptFlag == true) {
+                     String encryptedMessage = EMAIL_START + doEncrypt(fullMessage) + EMAIL_END + newline + ".";
 
-                  // Send msg
-                  pwt.println(encryptedMessage);
-                  System.out.println(encryptedMessage); 
-                  pwt.flush();
+                     // Send msg
+                     pwt.println(encryptedMessage);
+                     System.out.println(encryptedMessage); 
+                     pwt.flush();
+                  }
+                  // Otherwise, just send the message as is
+                  else {
+                     fullMessage = fullMessage + newline + ".";
+                     pwt.println(fullMessage);
+                     System.out.println(fullMessage);
+                     pwt.flush();
+                  }
 
                   // Read resp
                   resp = scn.nextLine();
