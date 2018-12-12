@@ -264,7 +264,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 	}
 
 	/**
-	 * Thread that prepares the message in the queue, then add its the to the user's mailbox file.
+	 * Thread that add messages from the queue into the user's mailbox file.
 	 * 
 	 * This thread will check if the ip matches the host's public ip, and if it does not it will relay
 	 */
@@ -273,7 +273,6 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 		String user = "";
 		String userIP = "";
 		String message = "";
-		String mailbox = user + ".txt"; 
 
 		// Constructor
 		public MailThread(String _user, String _userIP, String _message) {
@@ -287,19 +286,28 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 			// Check if user's ip matches our ip
 			if(userIP.equals(my_ip) || userIP.equals(hardcoded_ip) || userIP.equals("localhost")) {
 				System.out.println("Success - IP Verfied!");
-				
-				// User belongs to our ip, check if they have a mailbox file
-				File mailbox_file = new File(mailbox);
 
-				// Write to mailbox_file
+				// Write to mailbox (user.txt)
 				try {
+					// Declare name of mailbox
+					String mailbox = this.user + ".txt"; 
+
 					// Open I/O
-					PrintWriter mPwt = new PrintWriter(mailbox); 
+					File mailbox_file = new File(mailbox);
 
+					// Check if file exists 
+					if(!mailbox_file.exists()) {
+						System.out.println("Creating mailbox for user...");
+						mailbox_file.createNewFile();
+					}
+
+					FileOutputStream fos = new FileOutputStream(mailbox_file, true);
+					PrintWriter mPwt = new PrintWriter(fos);
+
+					// Write message
 					mPwt.println(message); 
-
+					mPwt.flush();
 					System.out.println("Saved to mailbox!");
-
 					mPwt.close();
 				}
 				catch(IOException ioe) { ioe.printStackTrace(); }	

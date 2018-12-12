@@ -311,7 +311,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
                   // Send msg
                   pwt.println(encryptedMessage);
-                  System.out.println(encryptedMessage);
+                  System.out.println(encryptedMessage); 
                   pwt.flush();
 
                   // Read resp
@@ -322,6 +322,8 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
                      // Show success alert
                      Alert alert = new Alert(AlertType.INFORMATION, "Message sent!");
                         alert.showAndWait();
+                     
+                     System.out.println("Message sent!");
                      
                      // Disconnect
                      doDisconnect();
