@@ -78,13 +78,15 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       tfFrom.setPromptText("example@example.com");
       tfTo.setPromptText("example@example.com");
       tfUser.setPromptText("abc123");
-      taMessage.setPromptText("Please end messages in newline period!");
+      taMessage.setPromptText("Do not end messages with a new line period, our client will take care of that!!");
 
       // Testing
       tfServer.setText("localhost");
       tfFrom.setText("xl4998@localhost");
       tfTo.setText("tester@localhost");
       tfSubject.setText("Subject subject");
+      tfUser.setText("tester");
+      tfPass.setText("kms");
 
       //Row1 - server name/IP
       FlowPane fpRow1 = new FlowPane(8,8);
