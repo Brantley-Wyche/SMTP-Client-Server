@@ -12,6 +12,9 @@ public interface ClientServerConstants {
    // Email constants
    public static final String EMAIL_START = "E+##$";
    public static final String EMAIL_END = ";!;";
+
+   // New line
+   public static final String newline = System.getProperty("line.separator");
 }
 
 

@@ -77,6 +77,12 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       tfFrom.setPromptText("example@example.com");
       tfTo.setPromptText("example@example.com");
       tfUser.setPromptText("abc123");
+      taMessage.setPromptText("Please end messages in newline period!");
+
+      // Testing
+      tfServer.setText("localhost");
+      tfFrom.setText("xl4998@localhost");
+      tfTo.setText("tester@localhost");
 
       //Row1 - server name/IP
       FlowPane fpRow1 = new FlowPane(8,8);
@@ -299,7 +305,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
                   // Prepare message 
                   Date date = new Date(); 
 
-                  String fullMessage = "From: " + fromUser + "\n To: " + toUser + "\n Time: " + date + "\n " + msg;
+                  String fullMessage = "From: " + fromUser + newline + "To: " + toUser + newline + "Time: " + date + newline + msg;
 
                   String encryptedMessage = doEncrypt(fullMessage);
 
@@ -440,12 +446,12 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
 		// Encryption based on shift, use a for loop to check each char of the string
 		for (int i = 0; i < msg.length(); i++) {
-			char curr = msg.charAt(i);
+         char curr = msg.charAt(i);
 
 			// Check for spaces
 			if (curr == ' ') {
 				result += " ";
-			}
+         }
 			// Check for Upper Cased chars using ArrayList letters
 			else if (Character.isUpperCase(curr)) {
 				if (LETTERS.contains(curr)) {
@@ -498,7 +504,11 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 			// Check for numbers using ArrayList numbers
 			else if (NUMBERS.contains(curr)) {
 				result += Character.toString(curr);
-			}
+         }
+         // Otherwise, new line
+         else {
+            result += newline;
+         }
 		}
 
 		// Return result

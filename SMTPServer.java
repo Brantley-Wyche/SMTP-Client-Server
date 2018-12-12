@@ -196,9 +196,10 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					pwt.flush();
 
 					// Listen for message
-					while(scn.hasNextLine()) {
-						if(!scn.nextLine().equals(".")) {
-							message += scn.nextLine();
+					while(scn.hasNextLine()) {		
+						String line = scn.nextLine().trim();				
+						if(!line.equals(".")) {
+							message += line;
 						}
 						else {
 							// Add to queue
@@ -284,37 +285,29 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 		// Run
 		public void run() {
 			// Check if user's ip matches our ip
-			if(userIP.equals(my_ip) || userIP.equals(hardcoded_ip)) {
+			if(userIP.equals(my_ip) || userIP.equals(hardcoded_ip) || userIP.equals("localhost")) {
+				System.out.println("Success - IP Verfied!");
+				
 				// User belongs to our ip, check if they have a mailbox file
 				File mailbox_file = new File(mailbox);
 
-				if(mailbox_file.exists()) {
-					// Write to mailbox_file
-					try {
-						// Open I/O
-						PrintWriter mPwt = new PrintWriter(mailbox_file); 
+				// Write to mailbox_file
+				try {
+					// Open I/O
+					PrintWriter mPwt = new PrintWriter(mailbox); 
 
-						mPwt.println(message); 
+					mPwt.println(message); 
 
-						mPwt.close();
-					}
-					catch(IOException ioe) { ioe.printStackTrace(); }
+					System.out.println("Saved to mailbox!");
+
+					mPwt.close();
 				}
-				// User does not have mailbox on our server, but matches our ip
-				else {
-					try {
-						// Open I/O
-						PrintWriter mPwt = new PrintWriter(user+".txt");
-						
-						mPwt.println(message);
-
-						mPwt.close();
-					}
-					catch(IOException ioe) { ioe.printStackTrace(); }
-				}
+				catch(IOException ioe) { ioe.printStackTrace(); }	
 			}
 			// User's ip does not match our ip
 			else {
+				System.out.println("Failed - IP does not match.");
+
 				// Relay to proper server
 				new RelayThread(user, userIP, message).start();
 			}
@@ -339,7 +332,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 		// Run
 		public void run() {
-
+			System.out.println("Relaying to server with Public IP: " + userIP);
 		}
 	}
 
