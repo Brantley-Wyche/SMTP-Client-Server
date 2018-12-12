@@ -84,7 +84,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 			try {
 				sSocket = new ServerSocket(SERVER_PORT);
 
-				System.out.println("Server started at Port: " + SERVER_PORT + ", Public IP: " + my_ip);
+				sLog("Server started at Port: " + SERVER_PORT + ", Public IP: " + my_ip);
 			} catch (IOException ioe) { ioe.printStackTrace(); }
 
 			// Always listen for connections to server
@@ -95,7 +95,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 					// Assign clientIp
 					clientIp = String.valueOf(cSocket.getInetAddress());
-					System.out.println("Connection established with " + clientIp);
+					sLog("Connection established with " + clientIp);
 				} catch (IOException ioe) {
 					ioe.printStackTrace();
 					return;
@@ -135,26 +135,26 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 			// Send "220"
 			pwt.println("220 " + "ESMTP Postfix");
-			System.out.println("220 " + "ESMTP Postfix");
+			sLog("220 " + "ESMTP Postfix");
 			pwt.flush();
 
 			// Listen for commands
 			while (scn.hasNextLine()) {
 				// Get command
-				String cmd = scn.nextLine();
+				String cmd = scn.nextLine().toLowerCase();
 
 				// HELO
-				if (cmd.startsWith("HELO")) {
-					System.out.println(cmd);
+				if (cmd.startsWith("helo")) {
+					System.out.println("C - " + cmd);
 
 					// Send status code
 					pwt.println("250 HELO " + clientIp + " OK");
-					System.out.println("250 HELO " + clientIp + " OK");
+					sLog("250 HELO " + clientIp + " OK");
 					pwt.flush();
 				}
 				// MAIL FROM
-				else if (cmd.startsWith("MAIL FROM:")) {
-					System.out.println(cmd);
+				else if (cmd.startsWith("mail from:")) {
+					System.out.println("C - " + cmd);
 
 					// Get the sender
 					sender = cmd.substring(10);
@@ -167,12 +167,12 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 					// Send status code
 					pwt.println("250 MAIL FROM OK");
-					System.out.println("250 MAIL FROM OK");
+					sLog("250 MAIL FROM OK");
 					pwt.flush();
 				}
 				// RCPT TO
-				else if (cmd.startsWith("RCPT TO:")) {
-					System.out.println(cmd);
+				else if (cmd.startsWith("rcpt to:")) {
+					System.out.println("C - " + cmd);
 
 					// Get the recipient
 					String recipient = cmd.substring(8);
@@ -191,16 +191,16 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 					// Send status code
 					pwt.println("250 RCPT TO OK");
-					System.out.println("250 RCPT TO OK");
+					sLog("250 RCPT TO OK");
 					pwt.flush();
 				}
 				// DATA
-				else if (cmd.equals("DATA")) {
-					System.out.println(cmd);
+				else if (cmd.equals("data")) {
+					System.out.println("C - " + cmd);
 
 					// Send status code
 					pwt.println("354 End in <CR><LR>.<CR><LR>");
-					System.out.println("354 End in <CR><LR>.<CR><LR>");
+					sLog("354 End in <CR><LR>.<CR><LR>");
 					pwt.flush();
 
 					// Empty the message string
@@ -221,17 +221,15 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 					// Send status code
 					pwt.println("250 Message Queued");
-					System.out.println("250 Message Queued");
+					sLog("250 Message Queued");
 					pwt.flush();
 
 					// Open thread to handle message in queue
 					new MailThread(username, ip, msgQueue.poll()).start();
-
-
 				}
 				// RETRIEVE FROM username pass
-				else if (cmd.startsWith("RETRIEVE FROM")) {
-					System.out.println(cmd);
+				else if (cmd.startsWith("retrieve from")) {
+					System.out.println("C - " + cmd);
 
 					// Split the string by " "
 					String[] parts = cmd.split(" ");
@@ -257,7 +255,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					if(pass.equals(PASSWORD)) {
 						// Send 250 
 						pwt.println("250 Retrieval OK");
-						System.out.println("250 Retrieval OK");
+						sLog("250 Retrieval OK");
 						pwt.flush();
 
 						// Check if user has mailbox
@@ -267,7 +265,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 						// Check for mailbox
 						if(!mailbox_file.exists()) {
 							pwt.println("221 User has no mail on our server!");
-							System.out.println("221 User has no mail on our server!");
+							sLog("221 User has no mail on our server!");
 							pwt.flush();
 						}
 						else {
@@ -292,17 +290,17 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					// Otherwise, send error code
 					else {
 						pwt.println("221 Password does not match!");
-						System.out.println("221 Password does not match!");
+						sLog("221 Password does not match!");
 						pwt.flush();
 					}
 				}
 				// QUIT
-				else if (cmd.equals("QUIT")) {
-					System.out.println(cmd);
+				else if (cmd.equals("quit")) {
+					System.out.println("C - " + cmd);
 
 					// Send response
 					pwt.println("221 Bye");
-					System.out.println("221 Bye");
+					sLog("221 Bye");
 					pwt.flush();
 
 					// Close streams
@@ -313,11 +311,11 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 				}
 				// If none of the commands are matched, send error
 				else {
-					System.out.println(cmd);
+					System.out.println("C - " +  cmd);
 
 					// Send error
 					pwt.println("221 Unknown command recieved");
-					System.out.println("221 Unknown command recieved");
+					sLog("221 Unknown command recieved");
 					pwt.flush();
 				}
 			} // end of while
@@ -346,7 +344,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 		public void run() {
 			// Check if user's ip matches our ip
 			if(userIP.equals(my_ip) || userIP.equals(hardcoded_ip) || userIP.equals("localhost")) {
-				System.out.println("Success - IP Verfied!");
+				sLog("Success - IP Verfied!");
 
 				// Write to mailbox (user.txt)
 				try {
@@ -358,7 +356,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 					// Check if file exists 
 					if(!mailbox_file.exists()) {
-						System.out.println("Creating mailbox for user...");
+						sLog("Creating mailbox for user...");
 						mailbox_file.createNewFile();
 					}
 
@@ -368,17 +366,17 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					// Write message
 					mPwt.println(message); 
 					mPwt.flush();
-					System.out.println("Saved to mailbox!");
+					sLog("Saved to mailbox!");
 					mPwt.close();
 				}
 				catch(IOException ioe) { ioe.printStackTrace(); }	
 			}
 			// User's ip does not match our ip
 			else {
-				System.out.println("Failed - IP does not match.");
+				sLog("Failed - IP does not match.");
 
 				// Relay to proper server
-				new RelayThread(user, userIP, message).start();
+				new RelayThread(user, userIP, sender, message).start();
 			}
 		}
 	}
@@ -390,23 +388,161 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 		// Attributes
 		String user = "";
 		String userIP = "";
+		String sender = "";
 		String message = "";
 
+		// I/O
+		Scanner rScn = null;
+		PrintWriter rPwt = null;
+
 		// Constructor
-		public RelayThread(String _user, String _userIP, String _message) {
+		public RelayThread(String _user, String _userIP, String _sender, String _message) {
 			this.user = _user;
 			this.userIP = _userIP;
+			this.sender = _sender;
 			this.message = _message;
 		}
 
 		// Run
 		public void run() {
-			System.out.println("Relaying to server with Public IP: " + userIP);
+			rLog("Relaying to server with Public IP: " + userIP);
+
+			// Connect & open stream
+			try {
+				rSocket = new Socket(userIP, SERVER_PORT);
+				rScn = new Scanner(new InputStreamReader(rSocket.getInputStream()));
+				rPwt = new PrintWriter(new OutputStreamWriter(rSocket.getOutputStream()));
+
+				String clientIp = String.valueOf(rSocket.getInetAddress());
+
+				// Listen for "220"
+				String resp = rScn.nextLine(); 
+
+				if(resp.contains("220")) {
+					// Send to the Server "HELO" with ip
+					rPwt.println("HELO " + clientIp);
+					rPwt.flush();
+
+					// Listen for "250"
+					resp = rScn.nextLine();
+
+					if(resp.contains("250")) {
+						// Show success alert
+						rLog("Connected!");
+					}
+					// Error
+					else {
+						// Alert
+						rLog("Error: " + resp);
+					}
+				}
+				// Error
+				else {
+					// Alert
+					rLog("Error: " + resp);
+				}
+			}
+			catch(IOException ioe) {
+				ioe.printStackTrace();
+
+				// Show alert
+				rLog("Could not connect to server!");
+			}
+
+			// Sends Server the "MAIL FROM" command
+			rPwt.println("MAIL FROM:" + "<" + sender + ">");
+			rLog("MAIL FROM:" + "<" + sender + ">");
+			rPwt.flush();
+
+			// Read resp
+			String resp = rScn.nextLine();
+
+			// Check for "250"
+			if(resp.contains("250")) {
+				// Sends "RCPT" to server
+				rPwt.println("RCPT TO:" + "<" + this.user + "@" + this.userIP + ">");
+				rLog("RCPT TO:" + "<" + this.user + "@" + this.userIP + ">");
+				rPwt.flush();
+
+				// Read resp
+				resp = rScn.nextLine();
+
+				// Check for "250"
+				if(resp.contains("250")) {
+					// Sends "DATA" to server
+					rPwt.println("DATA");
+					rLog("DATA");
+					rPwt.flush();
+
+					// Read resp
+					resp = rScn.nextLine();
+
+					// Check for "354"
+					if(resp.contains("354")) {
+						// Send msg
+						rPwt.println(this.message);
+						rLog(message); 
+						rPwt.flush();
+
+						// Read resp
+						resp = rScn.nextLine();
+
+						// Check for "250"
+						if(resp.contains("250")) {
+							// Show success alert
+							rLog("Message sent!");
+
+							// Disconnect
+							try {
+								rPwt.println("QUIT");
+								rPwt.flush();
+	
+								// Read resp
+								resp = rScn.nextLine();
+	
+								// Check for "221"
+								if(resp.contains("221")) {
+									rSocket.close();
+									rPwt.close();
+									rScn.close();
+								}
+								// Error
+								else {
+									rLog("Error: " + resp);
+								}
+							}
+							catch(IOException ioe) {
+								ioe.printStackTrace();
+								rLog("Connection closed");
+							}
+						}
+					}
+					// Error
+					else {
+						rLog("Error: " + resp);
+					}
+				}
+				// Error
+				else {
+					rLog("Error: " + resp);
+				}
+			}
+			// Error
+			else {
+				rLog("Error: " + resp);
+			}
+		}
+
+		// Print logs
+		private void rLog(String m) {
+			System.out.println("Relay - " + m);
 		}
 	}
 
 	/**
-	 * METHODS: doStart()
+	 * METHODS: 
+	 * doStart(),
+	 * sLog()
 	 */
 
 	/**
@@ -414,5 +550,12 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 	 */
 	private void doStart() {
 		new ServerStart().start();
+	}
+
+	/** 
+	 * Logs server commands
+	 */
+	private void sLog(String m) {
+		System.out.println("S - " + m);
 	}
 }

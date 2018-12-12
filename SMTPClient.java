@@ -201,9 +201,9 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
             pwt.flush();
 
             // Listen for "250"
-            String resp2 = scn.nextLine();
+            resp = scn.nextLine();
             
-            if(resp2.contains("250")) {
+            if(resp.contains("250")) {
                // Show success alert
                Alert alert = new Alert(AlertType.INFORMATION, "Connected!");
                   alert.showAndWait();
@@ -211,7 +211,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
             // Error
             else {
                // Alert
-               Alert alert = new Alert(AlertType.INFORMATION, resp2);
+               Alert alert = new Alert(AlertType.INFORMATION, resp);
                   alert.showAndWait();
             }
          }
@@ -243,7 +243,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          // Get status code
          String resp = scn.nextLine();
 
-         // Check for "OK"
+         // Check for "221"
          if(resp.contains("221")) {
             // Then closes the connections and streams
             socket.close();
@@ -284,7 +284,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
          // Sends Server the "MAIL FROM" command
          pwt.println("MAIL FROM:" + "<" + fromUser + ">");
-         System.out.println("MAIL FROM:" + "<" + fromUser + ">");
          pwt.flush();
 
          // Reads the response from the server
@@ -294,25 +293,23 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          if(resp.contains("250")) {
             // Sends "RCPT" to server
             pwt.println("RCPT TO:" + "<" + toUser + ">");
-            System.out.println("RCPT TO:" + "<" + toUser + ">");
             pwt.flush();
 
             // Read response from server again
-            String resp2 = scn.nextLine();
+            resp = scn.nextLine();
 
             // Check again that the response is "250"
-            if(resp2.contains("250")){
+            if(resp.contains("250")){
 
                // Sends "DATA" to server
                pwt.println("DATA");
-               System.out.println("DATA");
                pwt.flush();
 
                // Read resp
-               String resp3 = scn.nextLine();
+               resp = scn.nextLine();
 
                // Check resp for "354"
-               if(resp3.contains("354")){
+               if(resp.contains("354")){
 
                   // Prepare message 
                   Date date = new Date(); 
@@ -333,16 +330,14 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
                   pwt.flush();
 
                   // Read resp
-                  String resp4 = scn.nextLine();
+                  resp = scn.nextLine();
 
                   // Check resp for "250"
-                  if(resp4.contains("250")) {
+                  if(resp.contains("250")) {
                      // Show success alert
                      Alert alert = new Alert(AlertType.INFORMATION, "Message sent!");
                         alert.showAndWait();
-                     
-                     System.out.println("Message sent!");
-                     
+                                          
                      // Disconnect
                      doDisconnect();
                   }
@@ -414,7 +409,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
          // Send "RETRIEVE FROM" command
          pwt.println("RETRIEVE FROM " + username + " " + password);
-         System.out.println("RETRIEVE FROM " + username + " " + password);
          pwt.flush();
 
          // Check for 250
@@ -432,6 +426,9 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
                // Write to mailbox
                taMailbox.appendText(unencryptedString);
+            }
+            else {
+               taMailbox.appendText(mail);
             }
             
             // Close connection when its done
