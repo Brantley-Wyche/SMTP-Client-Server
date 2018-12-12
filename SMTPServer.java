@@ -9,7 +9,7 @@ import java.util.*;
  * commands from client to process them accordingly
  * 
  * @author Brandon Mok + Xin Liu + Brantley Wyche
- * @version 11/7/18
+ * @version 12/12/18
  */
 public class SMTPServer implements ClientServerConstants, CaesarCipherConstants {
 	// Sockets
@@ -145,6 +145,8 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 				// HELO
 				if (cmd.startsWith("HELO")) {
+					System.out.println(cmd);
+
 					// Send status code
 					pwt.println("250 HELO " + clientIp + " OK");
 					System.out.println("250 HELO " + clientIp + " OK");
@@ -152,6 +154,8 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 				}
 				// MAIL FROM
 				else if (cmd.startsWith("MAIL FROM:")) {
+					System.out.println(cmd);
+
 					// Get the sender
 					sender = cmd.substring(10);
 
@@ -168,6 +172,8 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 				}
 				// RCPT TO
 				else if (cmd.startsWith("RCPT TO:")) {
+					System.out.println(cmd);
+
 					// Get the recipient
 					String recipient = cmd.substring(8);
 
@@ -190,14 +196,19 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 				}
 				// DATA
 				else if (cmd.equals("DATA")) {
+					System.out.println(cmd);
+
 					// Send status code
 					pwt.println("354 End in <CR><LR>.<CR><LR>");
 					System.out.println("354 End in <CR><LR>.<CR><LR>");
 					pwt.flush();
 
+					// Empty the message string
+					message = "";
+
 					// Listen for message
 					while(scn.hasNextLine()) {		
-						String line = scn.nextLine().trim();				
+						String line = scn.nextLine().trim();										
 						if(!line.equals(".")) {
 							message += line;
 						}
@@ -214,19 +225,20 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					pwt.flush();
 
 					// Open thread to handle message in queue
-					new MailThread(username, ip, msgQueue.peek()).start();
+					new MailThread(username, ip, msgQueue.poll()).start();
+
+
 				}
 				// RETRIEVE FROM username pass
 				else if (cmd.startsWith("RETRIEVE FROM")) {
-					// Get everything after :
-					String username_pass = cmd.substring(14);
+					System.out.println(cmd);
 
 					// Split the string by " "
-					String[] parts = username_pass.split(" ");
+					String[] parts = cmd.split(" ");
 
 					// Get values
-					String username = parts[0];
-					String pass = parts[1];
+					String username = parts[2];
+					String pass = parts[3];
 
 					// Check for "<" and ">" in username
 					if (username.contains("<") && username.contains(">")) {
@@ -234,13 +246,60 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 						username = username.replace(">", "");
 					}
 
-					// Get mailbox
-					File mailboxFile = new File(username + ".txt");	
+					// Check if username has "@"
+					if(username.contains("@")) {
+						// Split by "@"
+						String[] user_parts = username.split("@");
+						username = user_parts[0];
+					}
 
-					// TODO: Check if user has mailbox
+					// Check for pass
+					if(pass.equals(PASSWORD)) {
+						// Send 250 
+						pwt.println("250 Retrieval OK");
+						System.out.println("250 Retrieval OK");
+						pwt.flush();
+
+						// Check if user has mailbox
+						String mailbox = username + ".txt";
+						File mailbox_file = new File(mailbox);
+
+						// Check for mailbox
+						if(!mailbox_file.exists()) {
+							pwt.println("221 User has no mail on our server!");
+							System.out.println("221 User has no mail on our server!");
+							pwt.flush();
+						}
+						else {
+							// Read from file and return all the messages
+							try {
+								FileInputStream fis = new FileInputStream(mailbox_file);
+								Scanner mScn = new Scanner(fis);
+								String allMail = "";
+
+								while(mScn.hasNextLine()) {
+									String line = mScn.nextLine();
+									allMail += line;
+								}
+
+								mScn.close();
+								pwt.println(allMail);
+								pwt.flush();
+							}
+							catch(IOException ioe) { ioe.printStackTrace(); }
+						}
+					}
+					// Otherwise, send error code
+					else {
+						pwt.println("221 Password does not match!");
+						System.out.println("221 Password does not match!");
+						pwt.flush();
+					}
 				}
 				// QUIT
 				else if (cmd.equals("QUIT")) {
+					System.out.println(cmd);
+
 					// Send response
 					pwt.println("221 Bye");
 					System.out.println("221 Bye");
@@ -254,6 +313,8 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 				}
 				// If none of the commands are matched, send error
 				else {
+					System.out.println(cmd);
+
 					// Send error
 					pwt.println("221 Unknown command recieved");
 					System.out.println("221 Unknown command recieved");

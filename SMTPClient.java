@@ -22,7 +22,7 @@ import java.net.*;
  * Client for ISTE-121 final project, connects to a server and will send commands to the server to process
  * 
  * @author Brandon Mok + Xin Liu + Brantley Wyche
- * @version 11/29/18
+ * @version 12/12/18
  */
 public class SMTPClient extends Application implements EventHandler<ActionEvent>, ClientServerConstants, CaesarCipherConstants {
    // GUI
@@ -39,6 +39,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
    private TextField tfServer = new TextField();
    private TextField tfFrom = new TextField();
    private TextField tfTo = new TextField();
+   private TextField tfSubject = new TextField();
    private TextField tfUser = new TextField();
    private TextField tfPass = new TextField();
 
@@ -83,6 +84,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       tfServer.setText("localhost");
       tfFrom.setText("xl4998@localhost");
       tfTo.setText("tester@localhost");
+      tfSubject.setText("Subject subject");
 
       //Row1 - server name/IP
       FlowPane fpRow1 = new FlowPane(8,8);
@@ -94,16 +96,23 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       //Row 2 - 'From' textfield
       FlowPane fpRow2 = new FlowPane(8,8);
       fpRow2.setAlignment(Pos.CENTER);
-      tfFrom.setPrefColumnCount(47);
+      tfFrom.setPrefColumnCount(45);
       fpRow2.getChildren().addAll(new Label("From: "), tfFrom);
       root.getChildren().add(fpRow2);
 
       //Row 3 - 'To' textfield
       FlowPane fpRow3 = new FlowPane(8,8);
       fpRow3.setAlignment(Pos.CENTER);
-      tfTo.setPrefColumnCount(48);
+      tfTo.setPrefColumnCount(45);
       fpRow3.getChildren().addAll(new Label("To: "), tfTo);
       root.getChildren().add(fpRow3);
+
+      //Row 6 - "Subject" textfield
+      FlowPane fpRow6 = new FlowPane(8,8);
+      fpRow6.setAlignment(Pos.CENTER);
+      tfSubject.setPrefColumnCount(45);
+      fpRow6.getChildren().addAll(new Label("Subject: "), tfSubject);
+      root.getChildren().add(fpRow6);
 
       //Hbox to space out the label and button
       HBox hbox1 = new HBox();
@@ -120,7 +129,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       //Row 5 - 'password'
       FlowPane fpRow5 = new FlowPane(8,8);
       fpRow5.setAlignment(Pos.CENTER);
-      tfPass.setPrefColumnCount(45); 
+      tfPass.setPrefColumnCount(45);
       fpRow5.getChildren().addAll(new Label("Password: "), tfPass);
       root.getChildren().add(fpRow5);
       
@@ -146,7 +155,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       btnRetrieve.setOnAction(this);
 
       // Show gui
-      scene = new Scene(root, 1000, 650);
+      scene = new Scene(root, 1000, 1000);
       stage.setScene(scene);
       stage.show();
 	}
@@ -261,6 +270,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       // Get values
       String fromUser = tfFrom.getText().trim();
       String toUser = tfTo.getText().trim();
+      String subject = tfServer.getText().trim();
       String msg = taMessage.getText();
       String serverIp = tfServer.getText().trim();
 
@@ -271,7 +281,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          doConnect(serverIp);
 
          // Sends Server the "MAIL FROM" command
-         pwt.println("MAIL FROM:" + fromUser);
+         pwt.println("MAIL FROM:" + "<" + fromUser + ">");
          System.out.println("MAIL FROM:" + "<" + fromUser + ">");
          pwt.flush();
 
@@ -281,7 +291,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          // Response from the server must be "250"
          if(resp.contains("250")) {
             // Sends "RCPT" to server
-            pwt.println("RCPT TO:" + toUser);
+            pwt.println("RCPT TO:" + "<" + toUser + ">");
             System.out.println("RCPT TO:" + "<" + toUser + ">");
             pwt.flush();
 
@@ -304,10 +314,16 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
                   // Prepare message 
                   Date date = new Date(); 
+                  String fullMessage = "";
 
-                  String fullMessage = "From: " + fromUser + newline + "To: " + toUser + newline + "Time: " + date + newline + msg;
+                  if(subject.length() > 0) {
+                     fullMessage += "From: " + fromUser + newline + "To: " + toUser + newline + "Subject: " + subject + newline + "Time: " + date + newline + msg;
+                  }
+                  else {
+                     fullMessage += "From: " + fromUser + newline + "To: " + toUser + newline + "Subject: " + "(No Subject)" + newline + "Time: " + date + newline + msg;  
+                  }
 
-                  String encryptedMessage = doEncrypt(fullMessage);
+                  String encryptedMessage = EMAIL_START + doEncrypt(fullMessage) + EMAIL_END + newline + ".";
 
                   // Send msg
                   pwt.println(encryptedMessage);
@@ -380,50 +396,48 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 	 * Sends command 'RETRIEVE FROM:USERNAME+PASSWORD' then logs all of the messages for the user
 	 */
 	private void doRetrieve() {
+      // Empty existing mailbox text area
+      taMailbox.setText("");
+
       // Get values
       String username = tfUser.getText().trim();
       String password = tfPass.getText().trim();
       String serverIp = tfServer.getText().trim();
 
       // Check for empty
-      if(username.length() > 0 && serverIp.length() > 0) {
+      if(username.length() > 0 && password.length() > 0 && serverIp.length() > 0) {
 
          // Connect to server
          doConnect(serverIp);
 
          // Send "RETRIEVE FROM" command
-         pwt.println("RETRIEVE FROM:" + "<" + username + "> password");
-         System.out.println("RETRIEVE FROM:" + "<" + username + "> password");
+         pwt.println("RETRIEVE FROM " + username + " " + password);
+         System.out.println("RETRIEVE FROM " + username + " " + password);
          pwt.flush();
 
-         // Get resp
+         // Check for 250
          String resp = scn.nextLine();
-
          if(resp.contains("250")) {
-            // Print 
-            taMailbox.setText(username + " 's Mailbox: \n\n");
-
             // Get messages
             String mail = scn.nextLine();
 
-            // Remove encryptions tags, then decrypt
-            String parsedMail = mail.replace(EMAIL_START, "");
-            
-            String[] allMails = parsedMail.split(EMAIL_END);
+            // Check mail for encrypted or plain
+            if(mail.contains(EMAIL_START) && mail.contains(EMAIL_END)) {
+               // Decrypt
+               String unencryptedString = mail.replace(EMAIL_START, "");
+               unencryptedString = unencryptedString.replace(EMAIL_END, "");
+               unencryptedString = doDecrypt(unencryptedString); 
 
-            for(int i=0; i<allMails.length; i++) {
-               parsedMail = doDecrypt(allMails[i]);
-
-               // Write to taMailbox
-               taMailbox.appendText(parsedMail + "\n");
+               // Write to mailbox
+               taMailbox.appendText(unencryptedString);
             }
-
-            // Quit connection
+            
+            // Close connection when its done
             doDisconnect();
          }
          // Error
          else {
-            // Show error
+            // Alert
             Alert alert = new Alert(AlertType.INFORMATION, resp);
                alert.showAndWait();
 
@@ -434,7 +448,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       // No sufficient tfs
       else {
          // Show alert
-         Alert alert = new Alert(AlertType.ERROR, "ServerIp and Username  must be filled out before sending!");
+         Alert alert = new Alert(AlertType.ERROR, "ServerIp, Username, and Password  must be filled out before retrieving!");
             alert.showAndWait();
       }
    }
@@ -580,7 +594,11 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 			// Check for numbers using ArrayList numbers
 			else if(NUMBERS.contains(curr)) {
 				result += Character.toString(curr);
-			}
+         }
+         // Otherwise, new line
+         else {
+            result += newline;
+         }
       }
    
 		return result;
