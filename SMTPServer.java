@@ -274,18 +274,18 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 								FileInputStream fis = new FileInputStream(mailbox_file);
 								Scanner mScn = new Scanner(fis);
 
+								// All messages stored as a String
+								String allMail = "";
+
+								// Read each message from file
 								while(mScn.hasNextLine()) {
 									String line = mScn.nextLine();
-									pwt.println(line);
-									sLog(line);
-									pwt.flush();
+									allMail += line;
 								}
 
-								// sLog(allMail);
-
+								pwt.println(allMail);
+								pwt.flush();
 								mScn.close();
-								// pwt.print(allMail);
-								// pwt.flush();
 							}
 							catch(IOException ioe) { ioe.printStackTrace(); }
 						}
@@ -346,9 +346,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 		// Run
 		public void run() {
 			// Check if user's ip matches our ip
-			if(userIP.equals(my_ip) || userIP.equals(hardcoded_ip) || userIP.equals("localhost")) {
-				sLog("Success - IP Verfied!");
-
+			if(userIP.equals(my_ip) || userIP.equals(hardcoded_ip) ) {
 				// Write to mailbox (user.txt)
 				try {
 					// Declare name of mailbox
@@ -376,8 +374,6 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 			}
 			// User's ip does not match our ip
 			else {
-				sLog("Failed - IP does not match.");
-
 				// Relay to proper server
 				new RelayThread(user, userIP, sender, message).start();
 			}
@@ -453,8 +449,8 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 			}
 
 			// Sends Server the "MAIL FROM" command
-			rPwt.println("MAIL FROM:" + "<" + sender + ">");
-			rLog("MAIL FROM:" + "<" + sender + ">");
+			rPwt.println("MAIL FROM:" + sender);
+			rLog("MAIL FROM:" + sender);
 			rPwt.flush();
 
 			// Read resp
@@ -483,8 +479,9 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 					// Check for "354"
 					if(resp.contains("354")) {
 						// Send msg
+						this.message = this.message + newline + ".";
 						rPwt.println(this.message);
-						rLog(message); 
+						rLog(this.message);
 						rPwt.flush();
 
 						// Read resp

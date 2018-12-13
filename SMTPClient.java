@@ -288,7 +288,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       // Get values
       String fromUser = tfFrom.getText().trim();
       String toUser = tfTo.getText().trim();
-      String subject = tfServer.getText().trim();
+      String subject = tfSubject.getText().trim();
       String msg = taMessage.getText();
       String serverIp = tfServer.getText().trim();
 
@@ -442,24 +442,23 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          if(resp.contains("250")) {
 
             // Get messages
-            while(scn.hasNextLine()) {
-               String mail = scn.nextLine();
+            String mail = scn.nextLine();
 
+            // Split by EMAIL_END string
+            String[] mails = mail.split(EMAIL_END);
+            for(int i=0; i<mails.length; i++) {
+               
                // Check mail for encrypted or plain
-               if(mail.contains(EMAIL_START) && mail.contains(EMAIL_END)) {
-                  System.out.println(mail);
-
+               if(mails[i].contains(EMAIL_START)) {
                   // Decrypt
-                  String unencryptedString = mail.replace(EMAIL_START, "");
-                  unencryptedString = unencryptedString.replace(EMAIL_END, "");
+                  String unencryptedString = mails[i].replace(EMAIL_START, "");
                   unencryptedString = doDecrypt(unencryptedString); 
 
                   // Write to mailbox
                   taMailbox.appendText(unencryptedString + newline);
                }
                else {
-                  System.out.println(mail);
-                  taMailbox.appendText(mail + newline);
+                  taMailbox.appendText(mails[i] + newline);
                }  
             }
             
