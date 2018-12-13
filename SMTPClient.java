@@ -94,7 +94,12 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
       rbtnEncrypt.setOnAction(new EventHandler<ActionEvent>() {
          public void handle(ActionEvent evt) {
-            encryptFlag = true;
+            if(rbtnEncrypt.isSelected()) {
+               encryptFlag = true;
+            }
+            else {
+               encryptFlag = false;
+            }
          }
       });
 
@@ -161,19 +166,19 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
 
       //Text area wrapping/columns/rows
       taMessage.setWrapText(true);
-      taMessage.setPrefColumnCount(10);
-      taMessage.setPrefRowCount(30);
+      taMessage.setPrefColumnCount(200);
+      taMessage.setPrefRowCount(200);
 
       taMailbox.setWrapText(true);
-      taMailbox.setPrefColumnCount(10);
-      taMailbox.setPrefRowCount(30);
+      taMailbox.setPrefColumnCount(200);
+      taMailbox.setPrefRowCount(200);
 
       //button handlers
       btnSend.setOnAction(this);
       btnRetrieve.setOnAction(this);
 
       // Show gui
-      scene = new Scene(root, 1000, 1000);
+      scene = new Scene(root, 700, 700);
       stage.setScene(scene);
       stage.show();
 	}
@@ -447,7 +452,7 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
             // Split by EMAIL_END string
             String[] mails = mail.split(EMAIL_END);
             for(int i=0; i<mails.length; i++) {
-               
+
                // Check mail for encrypted or plain
                if(mails[i].contains(EMAIL_START)) {
                   // Decrypt
