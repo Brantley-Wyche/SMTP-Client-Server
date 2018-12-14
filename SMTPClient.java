@@ -89,6 +89,10 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          }
       });
 
+      tfUser.setPromptText("username@ip");
+      tfTo.setPromptText("username@ip");
+      taMessage.setPromptText("Don't end your message in a period, our client will automatically add it to the end of your message");
+
       //Row1 - server name/IP
       FlowPane fpRow1 = new FlowPane(8,8);
       fpRow1.setAlignment(Pos.CENTER);
