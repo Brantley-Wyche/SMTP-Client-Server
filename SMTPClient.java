@@ -432,43 +432,29 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
          pwt.println("RETRIEVE FROM " + username + " " + password);
          pwt.flush();
 
-         // Check for 250
-         String resp = scn.nextLine();
-         if(resp.contains("250")) {
+         // Get messages
+         String mail = scn.nextLine();
 
-            // Get messages
-            String mail = scn.nextLine();
+         // Split by EMAIL_END string
+         String[] mails = mail.split(EMAIL_END);
+         for(int i=0; i<mails.length; i++) {
 
-            // Split by EMAIL_END string
-            String[] mails = mail.split(EMAIL_END);
-            for(int i=0; i<mails.length; i++) {
+            // Check mail for encrypted or plain
+            if(mails[i].contains(EMAIL_START)) {
+               // Decrypt
+               String unencryptedString = mails[i].replace(EMAIL_START, "");
+               unencryptedString = doDecrypt(unencryptedString); 
 
-               // Check mail for encrypted or plain
-               if(mails[i].contains(EMAIL_START)) {
-                  // Decrypt
-                  String unencryptedString = mails[i].replace(EMAIL_START, "");
-                  unencryptedString = doDecrypt(unencryptedString); 
-
-                  // Write to mailbox
-                  taMailbox.appendText(unencryptedString + newline);
-               }
-               else {
-                  taMailbox.appendText(mails[i] + newline);
-               }  
+               // Write to mailbox
+               taMailbox.appendText(unencryptedString + newline);
             }
-            
-            // Close connection when its done
-            doDisconnect();
+            else {
+               taMailbox.appendText(mails[i] + newline);
+            }  
          }
-         // Error
-         else {
-            // Alert
-            Alert alert = new Alert(AlertType.INFORMATION, resp);
-               alert.showAndWait();
-
-            // Quit connection
-            doDisconnect();
-         }
+         
+         // Close connection when its done
+         doDisconnect();
       }
       // No sufficient tfs
       else {

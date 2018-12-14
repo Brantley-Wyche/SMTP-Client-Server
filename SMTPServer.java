@@ -253,11 +253,6 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 
 					// Check for pass
 					if(pass.equals(PASSWORD)) {
-						// Send 250 
-						pwt.println("250 Retrieval OK");
-						sLog("250 Retrieval OK");
-						pwt.flush();
-
 						// Check if user has mailbox
 						String mailbox = username + ".txt";
 						File mailbox_file = new File(mailbox);
@@ -346,7 +341,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 		// Run
 		public void run() {
 			// Check if user's ip matches our ip
-			if(userIP.equals(my_ip) || userIP.equals(hardcoded_ip) || userIP.equals("localhost")) {
+			if(userIP.equals(my_ip) || userIP.equals(hardcoded_ip)) {
 				// Write to mailbox (user.txt)
 				try {
 					// Declare name of mailbox
