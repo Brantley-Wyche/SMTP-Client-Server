@@ -14,7 +14,7 @@ public interface ClientServerConstants {
    public static final String EMAIL_END = ";!;";
 
    // Password
-   public static final String PASSWORD = "kms";
+   public static final String PASSWORD = "test12345";
 
    // New line
    public static final String newline = System.getProperty("line.separator");

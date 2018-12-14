@@ -78,20 +78,6 @@ public class SMTPClient extends Application implements EventHandler<ActionEvent>
       lblMessage.setFont(new Font("Arial", 20));
       lblMailbox.setFont(new Font("Arial", 20));
 
-      tfServer.setPromptText("localhost");
-      tfFrom.setPromptText("example@example.com");
-      tfTo.setPromptText("example@example.com");
-      tfUser.setPromptText("abc123");
-      taMessage.setPromptText("Do not end messages with a new line period, our client will take care of that!!");
-
-      // Testing
-      tfServer.setText("localhost");
-      tfFrom.setText("xl4998@localhost");
-      tfTo.setText("tester@localhost");
-      tfSubject.setText("Subject subject");
-      tfUser.setText("tester");
-      tfPass.setText("kms");
-
       rbtnEncrypt.setOnAction(new EventHandler<ActionEvent>() {
          public void handle(ActionEvent evt) {
             if(rbtnEncrypt.isSelected()) {

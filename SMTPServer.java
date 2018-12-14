@@ -346,7 +346,7 @@ public class SMTPServer implements ClientServerConstants, CaesarCipherConstants 
 		// Run
 		public void run() {
 			// Check if user's ip matches our ip
-			if(userIP.equals(my_ip) || userIP.equals(hardcoded_ip) ||| userIP.equals("localhost")) {
+			if(userIP.equals(my_ip) || userIP.equals(hardcoded_ip) || userIP.equals("localhost")) {
 				// Write to mailbox (user.txt)
 				try {
 					// Declare name of mailbox
